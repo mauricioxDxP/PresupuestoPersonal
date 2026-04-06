@@ -50,8 +50,13 @@ const SortableMotivo: React.FC<SortableMotivoProps> = ({ motivo, onEdit, onDelet
       style={style}
       className="flex items-center justify-between border rounded px-3 py-2.5 mb-2 hover:shadow-md transition-shadow active:shadow-lg"
     >
-      <div className="flex items-center gap-2 sm:gap-3 cursor-grab select-none min-w-0 flex-1" {...attributes} {...listeners}>
-        <span className="text-lg shrink-0" style={{ color: 'var(--color-text-muted)' }}>⋮⋮</span>
+      <div className="flex items-center gap-2 sm:gap-3 select-none min-w-0 flex-1">
+        <span
+          className="text-lg shrink-0 cursor-grab"
+          style={{ color: 'var(--color-text-muted)', touchAction: 'none' }}
+          {...attributes}
+          {...listeners}
+        >⋮⋮</span>
         <span className="font-medium text-sm sm:text-base truncate" style={{ color: 'var(--color-text)' }}>{motivo.nombre}</span>
         <span className="text-xs shrink-0" style={{ color: 'var(--color-text-muted)' }}>#{motivo.orden}</span>
       </div>
@@ -84,7 +89,11 @@ const CategoriaGroup: React.FC<CategoriaGroupProps> = ({
   onDragEnd,
 }) => {
   const sensors = useSensors(
-    useSensor(PointerSensor),
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    }),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
     })

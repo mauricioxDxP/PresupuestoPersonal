@@ -33,8 +33,8 @@ export const transaccionesService = {
     await api.delete(`/transacciones/${id}`);
   },
 
-  async getReportes(): Promise<Reportes> {
-    const response = await api.get('/transacciones/reportes');
+  async getReportes(filtros?: FiltrosTransaccion): Promise<Reportes> {
+    const response = await api.get('/transacciones/reportes', { params: filtros });
     return response.data;
   },
 

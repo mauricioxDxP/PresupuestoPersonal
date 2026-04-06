@@ -50,8 +50,13 @@ const SortableCategoria: React.FC<SortableCategoriaProps> = ({ categoria, onEdit
       style={style}
       className="flex items-center justify-between border rounded px-3 py-2.5 mb-2 hover:shadow-md transition-shadow active:shadow-lg"
     >
-      <div className="flex items-center gap-2 sm:gap-3 cursor-grab select-none min-w-0 flex-1" {...attributes} {...listeners}>
-        <span className="text-lg shrink-0" style={{ color: 'var(--color-text-muted)' }}>⋮⋮</span>
+      <div className="flex items-center gap-2 sm:gap-3 select-none min-w-0 flex-1">
+        <span
+          className="text-lg shrink-0 cursor-grab"
+          style={{ color: 'var(--color-text-muted)', touchAction: 'none' }}
+          {...attributes}
+          {...listeners}
+        >⋮⋮</span>
         <span className="font-medium text-sm sm:text-base truncate" style={{ color: 'var(--color-text)' }}>{categoria.nombre}</span>
         <span
           className={`inline-block px-2 py-0.5 rounded text-xs shrink-0`}
@@ -99,7 +104,11 @@ export const CategoriasPage: React.FC = () => {
 
   // Drag & drop sensors
   const sensors = useSensors(
-    useSensor(PointerSensor),
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8, // Pequeña distancia para diferenciar drag de tap
+      },
+    }),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
     })

@@ -145,7 +145,7 @@ export const ReportesPage: React.FC = () => {
       ) : reportePreview ? (
         <>
           {/* Resumen */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4 sm:mb-6">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4 sm:mb-6">
             <Card>
               <p className="text-sm" style={{ color: 'var(--color-text-muted)' }}>Transacciones</p>
               <p className="text-2xl font-bold" style={{ color: 'var(--color-text)' }}>{totalTransacciones}</p>
@@ -160,6 +160,15 @@ export const ReportesPage: React.FC = () => {
               <p className="text-sm" style={{ color: 'var(--color-text-muted)' }}>Gastos</p>
               <p className="text-2xl font-bold" style={{ color: 'var(--color-text-gasto)' }}>
                 Bs{totalGastos.toFixed(2)}
+              </p>
+            </Card>
+            <Card>
+              <p className="text-sm" style={{ color: 'var(--color-text-muted)' }}>Balance</p>
+              <p
+                className="text-2xl font-bold"
+                style={{ color: (totalIngresos - totalGastos) >= 0 ? 'var(--color-text-ingreso)' : 'var(--color-text-gasto)' }}
+              >
+                Bs{(totalIngresos - totalGastos).toFixed(2)}
               </p>
             </Card>
           </div>
@@ -214,8 +223,9 @@ export const ReportesPage: React.FC = () => {
                             if (!hasTrans) {
                               if (includeEmpty && motivo.mostrarSinTransacciones) {
                                 return (
-                                  <div key={motivo.id} className="text-sm" style={{ color: 'var(--color-text-muted)' }}>
-                                    • {motivo.nombre} — Sin transacciones
+                                  <div key={motivo.id} className="text-sm flex justify-between max-w-md" style={{ color: 'var(--color-text-muted)' }}>
+                                    <span>• {motivo.nombre} — Sin transacciones</span>
+                                    <span className="shrink-0">Bs0.00</span>
                                   </div>
                                 );
                               }
@@ -227,12 +237,12 @@ export const ReportesPage: React.FC = () => {
 
                             return (
                               <div key={motivo.id}>
-                                <div className="flex justify-between items-center">
-                                  <span className="font-medium text-sm" style={{ color: 'var(--color-text-secondary)' }}>
+                                <div className="flex items-center gap-3 max-w-md">
+                                  <span className="font-medium text-sm flex-1 min-w-0 truncate" style={{ color: 'var(--color-text-secondary)' }}>
                                     • {motivo.nombre}
                                   </span>
                                   {transMotivo.length > 1 && (
-                                    <span className="font-bold text-sm" style={{ color: 'var(--color-text)' }}>
+                                    <span className="font-bold text-sm shrink-0" style={{ color: 'var(--color-text)' }}>
                                       Bs{motivoTotal.toFixed(2)}
                                     </span>
                                   )}
@@ -240,12 +250,12 @@ export const ReportesPage: React.FC = () => {
 
                                 {transMotivo.length === 1 ? (
                                   // Una sola transacción: mostrar inline
-                                  <div className="flex justify-between items-center ml-4 text-sm" style={{ color: 'var(--color-text-muted)' }}>
-                                    <span>
+                                  <div className="flex items-center gap-3 max-w-md ml-4 text-sm" style={{ color: 'var(--color-text-muted)' }}>
+                                    <span className="flex-1 min-w-0 truncate">
                                       {formatFecha(transMotivo[0].fecha)}
                                       {transMotivo[0].descripcion && ` — ${transMotivo[0].descripcion}`}
                                     </span>
-                                    <span className="font-medium" style={{ color: 'var(--color-text)' }}>
+                                    <span className="font-medium shrink-0" style={{ color: 'var(--color-text)' }}>
                                       Bs{Number(transMotivo[0].monto).toFixed(2)}
                                     </span>
                                   </div>
@@ -253,12 +263,12 @@ export const ReportesPage: React.FC = () => {
                                   // Múltiples transacciones: listar cada una
                                   <div className="ml-4 space-y-1">
                                     {transMotivo.map((t) => (
-                                      <div key={t.id} className="flex justify-between items-center text-sm" style={{ color: 'var(--color-text-muted)' }}>
-                                        <span>
+                                      <div key={t.id} className="flex items-center gap-3 max-w-md text-sm" style={{ color: 'var(--color-text-muted)' }}>
+                                        <span className="flex-1 min-w-0 truncate">
                                           {formatFecha(t.fecha)}
                                           {t.descripcion && ` — ${t.descripcion}`}
                                         </span>
-                                        <span className="font-medium" style={{ color: 'var(--color-text)' }}>
+                                        <span className="font-medium shrink-0" style={{ color: 'var(--color-text)' }}>
                                           Bs{Number(t.monto).toFixed(2)}
                                         </span>
                                       </div>
@@ -271,11 +281,11 @@ export const ReportesPage: React.FC = () => {
                         </div>
 
                         {/* Total categoría */}
-                        <div className="flex justify-between items-center mt-2 pt-2 border-t" style={{ borderColor: 'var(--color-border)' }}>
-                          <span className="font-bold text-sm" style={{ color: 'var(--color-text)' }}>
+                        <div className="flex items-center gap-3 max-w-md mt-2 pt-2 border-t" style={{ borderColor: 'var(--color-border)' }}>
+                          <span className="font-bold text-sm flex-1 min-w-0 truncate" style={{ color: 'var(--color-text)' }}>
                             Total {cat.nombre}
                           </span>
-                          <span className="font-bold text-base" style={{ color: cat.tipo === 'ingreso' ? 'var(--color-text-ingreso)' : 'var(--color-text-gasto)' }}>
+                          <span className="font-bold text-base shrink-0" style={{ color: cat.tipo === 'ingreso' ? 'var(--color-text-ingreso)' : 'var(--color-text-gasto)' }}>
                             Bs{catTotal.toFixed(2)}
                           </span>
                         </div>

@@ -56,7 +56,7 @@ export const TransaccionesPage: React.FC = () => {
         transaccionesService.getAll(filtros, { page, limit: pageSize }),
         categoriasService.getAll(),
         motivosService.getAll(),
-        transaccionesService.getReportes(),
+        transaccionesService.getReportes(filtros),
       ]);
       setTransacciones(transData.data);
       setTotalPages(transData.meta.totalPages);
