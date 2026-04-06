@@ -149,12 +149,36 @@ export const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children }
 
   return (
     <div
-      className="fixed inset-0 flex items-end sm:items-center justify-center z-50 p-0 sm:p-4"
+      className="fixed inset-0 z-50 sm:flex sm:items-center sm:justify-center"
       style={{ backgroundColor: 'var(--color-modal-overlay)' }}
       onClick={onClose}
     >
+      {/* Mobile: full screen sheet that slides up */}
       <div
-        className="bg-white rounded-t-xl sm:rounded-lg p-4 sm:p-6 w-full sm:max-w-md mx-auto max-h-[90vh] overflow-y-auto"
+        className="sm:hidden fixed inset-x-0 bottom-0 top-16 flex flex-col rounded-t-xl overflow-hidden"
+        style={{ backgroundColor: 'var(--color-card)' }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header fijo */}
+        <div className="flex justify-between items-center px-4 py-3 border-b shrink-0" style={{ borderColor: 'var(--color-border)' }}>
+          <h2 className="text-lg font-semibold truncate pr-4" style={{ color: 'var(--color-text)' }}>{title}</h2>
+          <button
+            onClick={onClose}
+            className="text-2xl leading-none shrink-0 p-1"
+            style={{ color: 'var(--color-text-muted)' }}
+          >
+            ✕
+          </button>
+        </div>
+        {/* Contenido scrolleable */}
+        <div className="flex-1 overflow-y-auto p-4">
+          {children}
+        </div>
+      </div>
+
+      {/* Desktop: centered modal */}
+      <div
+        className="hidden sm:block rounded-lg p-6 w-full max-w-md mx-4 max-h-[90vh] overflow-y-auto"
         style={{ backgroundColor: 'var(--color-card)' }}
         onClick={(e) => e.stopPropagation()}
       >
@@ -162,7 +186,7 @@ export const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children }
           <h2 className="text-xl font-semibold" style={{ color: 'var(--color-text)' }}>{title}</h2>
           <button
             onClick={onClose}
-            className="text-gray-500 hover:text-gray-700 text-2xl leading-none"
+            className="text-2xl leading-none"
             style={{ color: 'var(--color-text-muted)' }}
           >
             ✕
