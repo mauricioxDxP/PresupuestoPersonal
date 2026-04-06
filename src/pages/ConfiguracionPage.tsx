@@ -1,11 +1,22 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useTheme, themes, type ThemeId } from '../context/ThemeContext';
-import { Card } from '../components/UI';
+import { Card, Button } from '../components/UI';
+import { updateSW } from '../utils/registerSW';
 
 export const ConfiguracionPage: React.FC = () => {
   const { currentTheme, setTheme } = useTheme();
+  const [updating, setUpdating] = useState(false);
 
   const themeList: ThemeId[] = ['light', 'dark', 'ocean', 'forest', 'sunset', 'purple'];
+
+  const handleUpdate = async () => {
+    setUpdating(true);
+    const hasUpdate = await updateSW();
+    setUpdating(false);
+    if (!hasUpdate) {
+      alert('Ya estás en la última versión.');
+    }
+  };
 
   return (
     <div className="p-3 sm:p-4 md:p-6">
@@ -81,6 +92,16 @@ export const ConfiguracionPage: React.FC = () => {
             );
           })}
         </div>
+      </Card>
+
+      {/* PWA Update */}
+      <Card title="📱 Aplicación" className="mb-6">
+        <p className="text-sm mb-4" style={{ color: 'var(--color-text-muted)' }}>
+          FinanceTrack funciona como una app instalable. Si hay una nueva versión, podés actualizarla manualmente.
+        </p>
+        <Button onClick={handleUpdate} disabled={updating} className="w-full sm:w-auto">
+          {updating ? '⏳ Verificando...' : '🔄 Actualizar aplicación'}
+        </Button>
       </Card>
 
       {/* Info */}

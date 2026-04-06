@@ -82,22 +82,13 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // HTML pages: NetworkFirst
-  if (event.request.mode === 'navigate') {
+  // HTML pages / SPA routes: siempre servir index.html
+  if (event.request.mode === 'navigate' || event.request.headers.get('accept')?.includes('text/html')) {
     event.respondWith(
-      fetch(event.request)
-        .then((response) => {
-          if (response.ok) {
-            const responseClone = response.clone();
-            caches.open(CACHE_NAME).then((cache) => {
-              cache.put(event.request, responseClone);
-            });
-          }
-          return response;
-        })
-        .catch(() => {
-          return caches.match('/index.html');
-        })
+      caches.match('/index.html').then((cached) => {
+        if (cached) return cached;
+        return fetch(event.request);
+      })
     );
     return;
   }
