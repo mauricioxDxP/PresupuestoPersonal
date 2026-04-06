@@ -11,15 +11,51 @@ export const Button: React.FC<ButtonProps> = ({
   className = '',
   ...props
 }) => {
-  const baseStyles = 'px-4 py-2 rounded font-medium transition-colors';
-  const variants = {
-    primary: 'bg-blue-600 text-white hover:bg-blue-700',
-    secondary: 'bg-gray-200 text-gray-800 hover:bg-gray-300',
-    danger: 'bg-red-600 text-white hover:bg-red-700',
+  const baseStyles = 'px-4 py-2.5 rounded font-medium transition-all text-sm sm:text-base active:scale-95';
+
+  const styleOverrides: React.CSSProperties = {
+    ...(variant === 'primary' && {
+      backgroundColor: 'var(--color-primary)',
+      color: 'var(--color-primary-text)',
+    }),
+    ...(variant === 'secondary' && {
+      backgroundColor: 'var(--color-secondary)',
+      color: 'var(--color-secondary-text)',
+    }),
+    ...(variant === 'danger' && {
+      backgroundColor: 'var(--color-danger)',
+      color: 'var(--color-primary-text)',
+    }),
+  };
+
+  const handleMouseEnter = (e: React.MouseEvent<HTMLButtonElement>) => {
+    if (variant === 'primary') {
+      (e.currentTarget as HTMLButtonElement).style.backgroundColor = 'var(--color-primary-hover)';
+    } else if (variant === 'secondary') {
+      (e.currentTarget as HTMLButtonElement).style.backgroundColor = 'var(--color-secondary-hover)';
+    } else if (variant === 'danger') {
+      (e.currentTarget as HTMLButtonElement).style.backgroundColor = 'var(--color-danger-hover)';
+    }
+  };
+
+  const handleMouseLeave = (e: React.MouseEvent<HTMLButtonElement>) => {
+    if (variant === 'primary') {
+      (e.currentTarget as HTMLButtonElement).style.backgroundColor = 'var(--color-primary)';
+    } else if (variant === 'secondary') {
+      (e.currentTarget as HTMLButtonElement).style.backgroundColor = 'var(--color-secondary)';
+    } else if (variant === 'danger') {
+      (e.currentTarget as HTMLButtonElement).style.backgroundColor = 'var(--color-danger)';
+    }
   };
 
   return (
-    <button className={`${baseStyles} ${variants[variant]} ${className}`} {...props}>
+    <button
+      className={`${baseStyles} ${className}`}
+      style={styleOverrides}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+      {...props}
+    >
       {children}
     </button>
   );
@@ -33,14 +69,17 @@ interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
 export const Input: React.FC<InputProps> = ({ label, error, className = '', ...props }) => {
   return (
     <div className="mb-4">
-      {label && <label className="block text-sm font-medium text-gray-700 mb-1">{label}</label>}
+      {label && <label className="block text-sm font-medium mb-1" style={{ color: 'var(--color-text-secondary)' }}>{label}</label>}
       <input
-        className={`w-full px-3 py-2 border rounded ${
-          error ? 'border-red-500' : 'border-gray-300'
-        } ${className}`}
+        className={`w-full px-3 py-2 border rounded ${className}`}
+        style={{
+          backgroundColor: 'var(--color-input-bg)',
+          borderColor: error ? 'var(--color-danger)' : 'var(--color-input-border)',
+          color: 'var(--color-text)',
+        }}
         {...props}
       />
-      {error && <p className="text-red-500 text-sm mt-1">{error}</p>}
+      {error && <p className="text-red-500 text-sm mt-1" style={{ color: 'var(--color-danger)' }}>{error}</p>}
     </div>
   );
 };
@@ -53,10 +92,18 @@ interface SelectProps extends React.SelectHTMLAttributes<HTMLSelectElement> {
 export const Select: React.FC<SelectProps> = ({ label, options, className = '', ...props }) => {
   return (
     <div className="mb-4">
-      {label && <label className="block text-sm font-medium text-gray-700 mb-1">{label}</label>}
-      <select className={`w-full px-3 py-2 border border-gray-300 rounded ${className}`} {...props}>
+      {label && <label className="block text-sm font-medium mb-1" style={{ color: 'var(--color-text-secondary)' }}>{label}</label>}
+      <select
+        className={`w-full px-3 py-2 border rounded ${className}`}
+        style={{
+          backgroundColor: 'var(--color-input-bg)',
+          borderColor: 'var(--color-input-border)',
+          color: 'var(--color-text)',
+        }}
+        {...props}
+      >
         {options.map((opt) => (
-          <option key={opt.value} value={opt.value}>
+          <option key={opt.value} value={opt.value} style={{ backgroundColor: 'var(--color-card)', color: 'var(--color-text)' }}>
             {opt.label}
           </option>
         ))}
@@ -73,8 +120,18 @@ interface CardProps {
 
 export const Card: React.FC<CardProps> = ({ children, title, className = '' }) => {
   return (
-    <div className={`bg-white rounded-lg shadow p-4 ${className}`}>
-      {title && <h2 className="text-lg font-semibold mb-4">{title}</h2>}
+    <div
+      className={`rounded-lg shadow p-4 ${className}`}
+      style={{
+        backgroundColor: 'var(--color-card)',
+        border: `1px solid var(--color-card-border)`,
+      }}
+    >
+      {title && (
+        <h2 className="text-lg font-semibold mb-4" style={{ color: 'var(--color-text)' }}>
+          {title}
+        </h2>
+      )}
       {children}
     </div>
   );
@@ -91,11 +148,23 @@ export const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children }
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+    <div
+      className="fixed inset-0 flex items-end sm:items-center justify-center z-50 p-0 sm:p-4"
+      style={{ backgroundColor: 'var(--color-modal-overlay)' }}
+      onClick={onClose}
+    >
+      <div
+        className="bg-white rounded-t-xl sm:rounded-lg p-4 sm:p-6 w-full sm:max-w-md mx-auto max-h-[90vh] overflow-y-auto"
+        style={{ backgroundColor: 'var(--color-card)' }}
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-semibold">{title}</h2>
-          <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
+          <h2 className="text-xl font-semibold" style={{ color: 'var(--color-text)' }}>{title}</h2>
+          <button
+            onClick={onClose}
+            className="text-gray-500 hover:text-gray-700 text-2xl leading-none"
+            style={{ color: 'var(--color-text-muted)' }}
+          >
             ✕
           </button>
         </div>
@@ -108,13 +177,22 @@ export const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children }
 export const Loading: React.FC = () => {
   return (
     <div className="flex items-center justify-center p-8">
-      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      <div className="animate-spin rounded-full h-8 w-8 border-b-2" style={{ borderColor: 'var(--color-primary)' }}></div>
     </div>
   );
 };
 
 export const ErrorMessage: React.FC<{ message: string }> = ({ message }) => {
   return (
-    <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">{message}</div>
+    <div
+      className="border px-4 py-3 rounded"
+      style={{
+        backgroundColor: 'var(--color-badge-gasto)',
+        borderColor: 'var(--color-danger)',
+        color: 'var(--color-badge-gasto-text)',
+      }}
+    >
+      {message}
+    </div>
   );
 };

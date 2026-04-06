@@ -48,18 +48,18 @@ const SortableMotivo: React.FC<SortableMotivoProps> = ({ motivo, onEdit, onDelet
     <div
       ref={setNodeRef}
       style={style}
-      className="flex items-center justify-between bg-white border rounded px-3 py-2 mb-2 hover:shadow-md transition-shadow"
+      className="flex items-center justify-between border rounded px-3 py-2.5 mb-2 hover:shadow-md transition-shadow active:shadow-lg"
     >
-      <div className="flex items-center gap-3 cursor-grab select-none" {...attributes} {...listeners}>
-        <span className="text-gray-400">⋮⋮</span>
-        <span className="font-medium">{motivo.nombre}</span>
-        <span className="text-xs text-gray-400">#{motivo.orden}</span>
+      <div className="flex items-center gap-2 sm:gap-3 cursor-grab select-none min-w-0 flex-1" {...attributes} {...listeners}>
+        <span className="text-lg shrink-0" style={{ color: 'var(--color-text-muted)' }}>⋮⋮</span>
+        <span className="font-medium text-sm sm:text-base truncate" style={{ color: 'var(--color-text)' }}>{motivo.nombre}</span>
+        <span className="text-xs shrink-0" style={{ color: 'var(--color-text-muted)' }}>#{motivo.orden}</span>
       </div>
-      <div className="flex gap-2">
-        <button onClick={() => onEdit(motivo)} className="text-blue-600 hover:text-blue-800 text-sm">
+      <div className="flex gap-2 shrink-0 ml-2">
+        <button onClick={() => onEdit(motivo)} className="text-blue-600 hover:text-blue-800 text-sm min-w-[32px] text-center" style={{ color: 'var(--color-primary)' }}>
           ✎
         </button>
-        <button onClick={() => onDelete(motivo.id)} className="text-red-600 hover:text-red-800 text-sm">
+        <button onClick={() => onDelete(motivo.id)} className="text-sm min-w-[32px] text-center" style={{ color: 'var(--color-danger)' }}>
           ✕
         </button>
       </div>
@@ -330,9 +330,9 @@ export const MotivosPage: React.FC = () => {
   if (loading) return <Loading />;
 
   return (
-    <div className="p-4 md:p-6">
-      <div className="flex flex-wrap justify-between items-center gap-4 mb-6">
-        <h1 className="text-2xl font-bold">Motivos</h1>
+    <div className="p-3 sm:p-4 md:p-6">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-4 sm:mb-6">
+        <h1 className="text-xl sm:text-2xl font-bold">Motivos</h1>
         
         <div className="flex flex-wrap gap-2">
           <div className="relative" ref={dropdownRef}>
@@ -340,23 +340,37 @@ export const MotivosPage: React.FC = () => {
               Excel ▼
             </Button>
             {excelDropdownOpen && (
-              <div className="absolute right-0 mt-1 w-40 bg-white border rounded shadow-lg z-10">
+              <div
+                className="absolute right-0 mt-1 w-40 border rounded shadow-lg z-10"
+                style={{ backgroundColor: 'var(--color-dropdown-bg)', borderColor: 'var(--color-border)' }}
+              >
                 <button
                   onClick={() => {
                     downloadTemplate('motivo');
                     setExcelDropdownOpen(false);
                   }}
-                  className="block w-full text-left px-4 py-2 hover:bg-gray-100"
+                  className="block w-full text-left px-4 py-2 text-sm"
+                  style={{ color: 'var(--color-text)' }}
+                  onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.backgroundColor = 'var(--color-dropdown-hover)')}
+                  onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.backgroundColor = 'transparent')}
                 >
                   Template
                 </button>
-                <label className="block w-full text-left px-4 py-2 hover:bg-gray-100 cursor-pointer">
+                <label
+                  className="block w-full text-left px-4 py-2 cursor-pointer text-sm"
+                  style={{ color: 'var(--color-text)' }}
+                  onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.backgroundColor = 'var(--color-dropdown-hover)')}
+                  onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.backgroundColor = 'transparent')}
+                >
                   Importar
                   <input type="file" accept=".xlsx,.xls" onChange={handleImport} className="hidden" />
                 </label>
                 <button
                   onClick={handleExport}
-                  className="block w-full text-left px-4 py-2 hover:bg-gray-100"
+                  className="block w-full text-left px-4 py-2 text-sm"
+                  style={{ color: 'var(--color-text)' }}
+                  onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.backgroundColor = 'var(--color-dropdown-hover)')}
+                  onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.backgroundColor = 'transparent')}
                 >
                   Exportar
                 </button>
@@ -395,7 +409,7 @@ export const MotivosPage: React.FC = () => {
       {error && <ErrorMessage message={error} />}
 
       {/* Lista vertical por categoría con drag & drop */}
-      <div className="space-y-6">
+      <div className="space-y-4 sm:space-y-6">
         {Object.entries(motivosAgrupados).map(([categoriaId, { categoria, motivos: motivosList }]) => (
           <CategoriaGroup
             key={categoriaId}
@@ -409,7 +423,7 @@ export const MotivosPage: React.FC = () => {
       </div>
 
       {Object.keys(motivosAgrupados).length === 0 && !error && (
-        <p className="text-gray-500 text-center py-8">No hay motivos. ¡Crea uno!</p>
+        <p className="text-center py-8" style={{ color: 'var(--color-text-muted)' }}>No hay motivos. ¡Crea uno!</p>
       )}
 
       <Modal
@@ -466,11 +480,16 @@ export const MotivosPage: React.FC = () => {
       >
         <form onSubmit={handleMultipleSubmit}>
           <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium mb-1" style={{ color: 'var(--color-text-secondary)' }}>
               Motivos (uno por línea)
             </label>
             <textarea
-              className="w-full px-3 py-2 border border-gray-300 rounded h-40"
+              className="w-full px-3 py-2 border rounded h-40"
+              style={{
+                backgroundColor: 'var(--color-input-bg)',
+                borderColor: 'var(--color-input-border)',
+                color: 'var(--color-text)',
+              }}
               placeholder="Gasolina&#10;Estacionamiento&#10;Peaje"
               value={multipleForm.lista}
               onChange={(e) => setMultipleForm({ ...multipleForm, lista: e.target.value })}

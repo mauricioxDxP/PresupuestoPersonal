@@ -34,28 +34,29 @@ export const DashboardPage: React.FC = () => {
   if (loading) return <Loading />;
 
   return (
-    <div className="p-4 md:p-6">
-      <h1 className="text-2xl font-bold mb-6">Dashboard</h1>
+    <div className="p-3 sm:p-4 md:p-6">
+      <h1 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6">Dashboard</h1>
 
       {error && <ErrorMessage message={error} />}
 
       {/* Totales */}
       {reportes && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6 sm:mb-8">
           <Card>
-            <p className="text-sm text-gray-500">Total Ingresos</p>
-            <p className="text-3xl font-bold text-green-600">
+            <p className="text-sm" style={{ color: 'var(--color-text-muted)' }}>Total Ingresos</p>
+            <p className="text-2xl sm:text-3xl font-bold" style={{ color: 'var(--color-text-ingreso)' }}>
               Bs{reportes.totalIngresos.toFixed(2)}
             </p>
           </Card>
           <Card>
-            <p className="text-sm text-gray-500">Total Gastos</p>
-            <p className="text-3xl font-bold text-red-600">Bs{reportes.totalGastos.toFixed(2)}</p>
+            <p className="text-sm" style={{ color: 'var(--color-text-muted)' }}>Total Gastos</p>
+            <p className="text-2xl sm:text-3xl font-bold" style={{ color: 'var(--color-text-gasto)' }}>Bs{reportes.totalGastos.toFixed(2)}</p>
           </Card>
           <Card>
-            <p className="text-sm text-gray-500">Balance</p>
+            <p className="text-sm" style={{ color: 'var(--color-text-muted)' }}>Balance</p>
             <p
-              className={`text-3xl font-bold ${reportes.balance >= 0 ? 'text-green-600' : 'text-red-600'}`}
+              className={`text-2xl sm:text-3xl font-bold`}
+              style={{ color: reportes.balance >= 0 ? 'var(--color-text-ingreso)' : 'var(--color-text-gasto)' }}
             >
               Bs{reportes.balance.toFixed(2)}
             </p>
@@ -65,13 +66,14 @@ export const DashboardPage: React.FC = () => {
 
       {/* Por categoría */}
       {reportes && reportes.porCategoria.length > 0 && (
-        <Card title="Por Categoría" className="mb-8">
+        <Card title="Por Categoría" className="mb-6 sm:mb-8">
           <div className="space-y-2">
             {reportes.porCategoria.map((cat, idx) => (
               <div key={idx} className="flex justify-between items-center">
-                <span>{cat.nombre}</span>
+                <span className="text-sm sm:text-base">{cat.nombre}</span>
                 <span
-                  className={`font-medium ${cat.tipo === 'ingreso' ? 'text-green-600' : 'text-red-600'}`}
+                  className={`font-medium text-sm sm:text-base`}
+                  style={{ color: cat.tipo === 'ingreso' ? 'var(--color-text-ingreso)' : 'var(--color-text-gasto)' }}
                 >
                   {cat.tipo === 'ingreso' ? '+' : '-'}Bs{cat.total.toFixed(2)}
                 </span>
@@ -85,13 +87,13 @@ export const DashboardPage: React.FC = () => {
       <Card title="Transacciones Recientes">
         <div className="space-y-2">
           {transaccionesRecientes.map((trans) => (
-            <div key={trans.id} className="flex justify-between items-center border-b pb-2">
-              <div>
-                <span className="font-medium">{trans.motivo?.nombre}</span>
-                <span className="text-sm text-gray-500 ml-2">({trans.categoria?.nombre})</span>
+            <div key={trans.id} className="flex justify-between items-center border-b pb-2 last:border-b-0">
+              <div className="min-w-0 flex-1">
+                <span className="font-medium text-sm sm:text-base">{trans.motivo?.nombre}</span>
+                <span className="text-xs sm:text-sm ml-2" style={{ color: 'var(--color-text-muted)' }}>({trans.categoria?.nombre})</span>
               </div>
               <span
-                className={`font-bold ${trans.categoria?.tipo === 'ingreso' ? 'text-green-600' : 'text-red-600'}`}
+                className={`font-bold text-sm sm:text-base shrink-0 ml-2 ${trans.categoria?.tipo === 'ingreso' ? 'text-green-600' : 'text-red-600'}`}
               >
                 {trans.categoria?.tipo === 'ingreso' ? '+' : '-'}Bs{Number(trans.monto).toFixed(2)}
               </span>

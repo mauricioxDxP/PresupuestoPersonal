@@ -1,8 +1,79 @@
 import React, { useState, useEffect, useRef } from 'react';
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import { categoriasService } from '../services';
 import type { Categoria, CreateCategoriaDto } from '../types';
 import { Button, Input, Select, Card, Modal, Loading, ErrorMessage } from '../components/UI';
 import { exportToExcel, importFromExcel, downloadTemplate } from '../utils/excel';
+import type { DragEndEvent } from '@dnd-kit/core';
+
+// Componente individual para cada categoría (sortable)
+interface SortableCategoriaProps {
+  categoria: Categoria;
+  onEdit: (c: Categoria) => void;
+  onDelete: (id: string) => void;
+}
+
+const SortableCategoria: React.FC<SortableCategoriaProps> = ({ categoria, onEdit, onDelete }) => {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: categoria.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className="flex items-center justify-between border rounded px-3 py-2.5 mb-2 hover:shadow-md transition-shadow active:shadow-lg"
+    >
+      <div className="flex items-center gap-2 sm:gap-3 cursor-grab select-none min-w-0 flex-1" {...attributes} {...listeners}>
+        <span className="text-lg shrink-0" style={{ color: 'var(--color-text-muted)' }}>⋮⋮</span>
+        <span className="font-medium text-sm sm:text-base truncate" style={{ color: 'var(--color-text)' }}>{categoria.nombre}</span>
+        <span
+          className={`inline-block px-2 py-0.5 rounded text-xs shrink-0`}
+          style={{
+            backgroundColor: categoria.tipo === 'ingreso' ? 'var(--color-badge-ingreso)' : 'var(--color-badge-gasto)',
+            color: categoria.tipo === 'ingreso' ? 'var(--color-badge-ingreso-text)' : 'var(--color-badge-gasto-text)',
+          }}
+        >
+          {categoria.tipo === 'ingreso' ? 'Ingreso' : 'Gasto'}
+        </span>
+      </div>
+      <div className="flex gap-2 shrink-0 ml-2">
+        <button onClick={() => onEdit(categoria)} className="text-sm min-w-[32px] text-center" style={{ color: 'var(--color-primary)' }}>
+          ✎
+        </button>
+        <button onClick={() => onDelete(categoria.id)} className="text-sm min-w-[32px] text-center" style={{ color: 'var(--color-danger)' }}>
+          ✕
+        </button>
+      </div>
+    </div>
+  );
+};
 
 export const CategoriasPage: React.FC = () => {
   const [categorias, setCategorias] = useState<Categoria[]>([]);
@@ -18,12 +89,21 @@ export const CategoriasPage: React.FC = () => {
   const [form, setForm] = useState<CreateCategoriaDto>({
     nombre: '',
     tipo: 'gasto',
+    orden: 0,
   });
 
   const [multipleForm, setMultipleForm] = useState({
     lista: '',
     tipo: 'gasto' as 'ingreso' | 'gasto',
   });
+
+  // Drag & drop sensors
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
 
   // Cerrar dropdown cuando se hace click fuera
   useEffect(() => {
@@ -61,11 +141,13 @@ export const CategoriasPage: React.FC = () => {
       if (editando) {
         await categoriasService.update(editando.id, form);
       } else {
-        await categoriasService.create(form);
+        // Calcular el máximo orden actual + 1
+        const maxOrden = categorias.length > 0 ? Math.max(...categorias.map((c) => c.orden)) : 0;
+        await categoriasService.create({ ...form, orden: maxOrden + 1 });
       }
       setModalOpen(false);
       setEditando(null);
-      setForm({ nombre: '', tipo: 'gasto' });
+      setForm({ nombre: '', tipo: 'gasto', orden: 0 });
       cargarCategorias();
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Error al guardar';
@@ -81,8 +163,14 @@ export const CategoriasPage: React.FC = () => {
         .map((n) => n.trim())
         .filter((n) => n);
 
-      for (const nombre of nombres) {
-        await categoriasService.create({ nombre, tipo: multipleForm.tipo });
+      const maxOrden = categorias.length > 0 ? Math.max(...categorias.map((c) => c.orden)) : 0;
+
+      for (let i = 0; i < nombres.length; i++) {
+        await categoriasService.create({
+          nombre: nombres[i],
+          tipo: multipleForm.tipo,
+          orden: maxOrden + i + 1,
+        });
       }
 
       setModalMultipleOpen(false);
@@ -109,6 +197,7 @@ export const CategoriasPage: React.FC = () => {
     const data = categorias.map((c) => ({
       nombre: c.nombre,
       tipo: c.tipo,
+      orden: c.orden,
     }));
     exportToExcel(data, 'categorias', 'Categorías');
     setExcelDropdownOpen(false);
@@ -120,11 +209,14 @@ export const CategoriasPage: React.FC = () => {
 
     try {
       const rows = await importFromExcel(file);
-      for (const row of rows) {
-        if (row.nombre) {
+      const maxOrden = categorias.length > 0 ? Math.max(...categorias.map((c) => c.orden)) : 0;
+
+      for (let i = 0; i < rows.length; i++) {
+        if (rows[i].nombre) {
           await categoriasService.create({
-            nombre: row.nombre,
-            tipo: row.tipo || 'gasto',
+            nombre: rows[i].nombre,
+            tipo: rows[i].tipo || 'gasto',
+            orden: maxOrden + i + 1,
           });
         }
       }
@@ -137,18 +229,36 @@ export const CategoriasPage: React.FC = () => {
     setExcelDropdownOpen(false);
   };
 
+  const handleDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event;
+
+    if (!over || active.id === over.id) return;
+
+    const oldIndex = categorias.findIndex((c) => c.id === active.id);
+    const newIndex = categorias.findIndex((c) => c.id === over.id);
+
+    const reordered = arrayMove(categorias, oldIndex, newIndex);
+
+    // Actualizar órdenes en la base de datos
+    for (let i = 0; i < reordered.length; i++) {
+      await categoriasService.update(reordered[i].id, { orden: i + 1 });
+    }
+
+    cargarCategorias();
+  };
+
   const openEdit = (cat: Categoria) => {
     setEditando(cat);
-    setForm({ nombre: cat.nombre, tipo: cat.tipo as 'ingreso' | 'gasto' });
+    setForm({ nombre: cat.nombre, tipo: cat.tipo as 'ingreso' | 'gasto', orden: cat.orden });
     setModalOpen(true);
   };
 
   if (loading) return <Loading />;
 
   return (
-    <div className="p-4 md:p-6">
-      <div className="flex flex-wrap justify-between items-center gap-4 mb-6">
-        <h1 className="text-2xl font-bold">Categorías</h1>
+    <div className="p-3 sm:p-4 md:p-6">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-4 sm:mb-6">
+        <h1 className="text-xl sm:text-2xl font-bold">Categorías</h1>
         
         <div className="flex flex-wrap gap-2">
           {/* Dropdown Excel */}
@@ -157,23 +267,37 @@ export const CategoriasPage: React.FC = () => {
               Excel ▼
             </Button>
             {excelDropdownOpen && (
-              <div className="absolute right-0 mt-1 w-40 bg-white border rounded shadow-lg z-10">
+              <div
+                className="absolute right-0 mt-1 w-40 border rounded shadow-lg z-10"
+                style={{ backgroundColor: 'var(--color-dropdown-bg)', borderColor: 'var(--color-border)' }}
+              >
                 <button
                   onClick={() => {
                     downloadTemplate('categoria');
                     setExcelDropdownOpen(false);
                   }}
-                  className="block w-full text-left px-4 py-2 hover:bg-gray-100"
+                  className="block w-full text-left px-4 py-2 text-sm"
+                  style={{ color: 'var(--color-text)' }}
+                  onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.backgroundColor = 'var(--color-dropdown-hover)')}
+                  onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.backgroundColor = 'transparent')}
                 >
                   Template
                 </button>
-                <label className="block w-full text-left px-4 py-2 hover:bg-gray-100 cursor-pointer">
+                <label
+                  className="block w-full text-left px-4 py-2 cursor-pointer text-sm"
+                  style={{ color: 'var(--color-text)' }}
+                  onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.backgroundColor = 'var(--color-dropdown-hover)')}
+                  onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.backgroundColor = 'transparent')}
+                >
                   Importar
                   <input type="file" accept=".xlsx,.xls" onChange={handleImport} className="hidden" />
                 </label>
                 <button
                   onClick={handleExport}
-                  className="block w-full text-left px-4 py-2 hover:bg-gray-100"
+                  className="block w-full text-left px-4 py-2 text-sm"
+                  style={{ color: 'var(--color-text)' }}
+                  onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.backgroundColor = 'var(--color-dropdown-hover)')}
+                  onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.backgroundColor = 'transparent')}
                 >
                   Exportar
                 </button>
@@ -183,7 +307,7 @@ export const CategoriasPage: React.FC = () => {
 
           <Button onClick={() => {
             setEditando(null);
-            setForm({ nombre: '', tipo: 'gasto' });
+            setForm({ nombre: '', tipo: 'gasto', orden: 0 });
             setModalOpen(true);
           }}>
             + Nueva
@@ -211,40 +335,26 @@ export const CategoriasPage: React.FC = () => {
 
       {error && <ErrorMessage message={error} />}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {categorias.map((cat) => (
-          <Card key={cat.id}>
-            <div className="flex justify-between items-start">
-              <div>
-                <h3 className="font-semibold text-lg">{cat.nombre}</h3>
-                <span
-                  className={`inline-block px-2 py-1 rounded text-sm ${
-                    cat.tipo === 'ingreso'
-                      ? 'bg-green-100 text-green-800'
-                      : 'bg-red-100 text-red-800'
-                  }`}
-                >
-                  {cat.tipo === 'ingreso' ? 'Ingreso' : 'Gasto'}
-                </span>
-              </div>
-              <div className="flex gap-2">
-                <button onClick={() => openEdit(cat)} className="text-blue-600 hover:text-blue-800">
-                  Editar
-                </button>
-                <button
-                  onClick={() => handleDelete(cat.id)}
-                  className="text-red-600 hover:text-red-800"
-                >
-                  Eliminar
-                </button>
-              </div>
-            </div>
-          </Card>
-        ))}
-      </div>
+      {/* Lista vertical con drag & drop */}
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        onDragEnd={handleDragEnd}
+      >
+        <SortableContext items={categorias.map((c) => c.id)} strategy={verticalListSortingStrategy}>
+          {categorias.map((cat) => (
+            <SortableCategoria
+              key={cat.id}
+              categoria={cat}
+              onEdit={openEdit}
+              onDelete={handleDelete}
+            />
+          ))}
+        </SortableContext>
+      </DndContext>
 
       {categorias.length === 0 && !error && (
-        <p className="text-gray-500 text-center py-8">No hay categorías. ¡Crea una!</p>
+        <p className="text-center py-8" style={{ color: 'var(--color-text-muted)' }}>No hay categorías. ¡Crea una!</p>
       )}
 
       {/* Modal Individual */}
@@ -286,11 +396,16 @@ export const CategoriasPage: React.FC = () => {
       >
         <form onSubmit={handleMultipleSubmit}>
           <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium mb-1" style={{ color: 'var(--color-text-secondary)' }}>
               Categorías (una por línea)
             </label>
             <textarea
-              className="w-full px-3 py-2 border border-gray-300 rounded h-40"
+              className="w-full px-3 py-2 border rounded h-40"
+              style={{
+                backgroundColor: 'var(--color-input-bg)',
+                borderColor: 'var(--color-input-border)',
+                color: 'var(--color-text)',
+              }}
               placeholder="Alimentación&#10;Transporte&#10;Entretenimiento"
               value={multipleForm.lista}
               onChange={(e) => setMultipleForm({ ...multipleForm, lista: e.target.value })}

@@ -37,4 +37,11 @@ export const transaccionesService = {
     const response = await api.get('/transacciones/reportes');
     return response.data;
   },
+
+  async getReporteMensual(anio: number, mes: number) {
+    const response = await api.get('/transacciones/reporte-mensual', {
+      params: { anio, mes },
+    });
+    return response.data;
+  },
 };

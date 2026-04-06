@@ -21,6 +21,8 @@ export const TransaccionesPage: React.FC = () => {
   const [modalOpen, setModalOpen] = useState(false);
   const [editando, setEditando] = useState<Transaccion | null>(null);
   const [filtros, setFiltros] = useState<FiltrosTransaccion>({});
+  const [filtrosTemp, setFiltrosTemp] = useState<FiltrosTransaccion>({});
+  const [filtrosAbiertos, setFiltrosAbiertos] = useState(true);
   const [excelDropdownOpen, setExcelDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const [page, setPage] = useState(1);
@@ -79,6 +81,16 @@ export const TransaccionesPage: React.FC = () => {
     cargarDatos();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filtros, page]);
+
+  const aplicarFiltros = () => {
+    setFiltros(filtrosTemp);
+  };
+
+  const limpiarFiltros = () => {
+    setFiltrosTemp({});
+    setFiltros({});
+    setPage(1);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -239,24 +251,25 @@ export const TransaccionesPage: React.FC = () => {
   if (loading) return <Loading />;
 
   return (
-    <div className="p-4 md:p-6">
+    <div className="p-3 sm:p-4 md:p-6">
       {/* Reportes */}
       {reportes && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4 sm:mb-6">
           <Card>
-            <p className="text-sm text-gray-500">Ingresos</p>
-            <p className="text-2xl font-bold text-green-600">
+            <p className="text-sm" style={{ color: 'var(--color-text-muted)' }}>Ingresos</p>
+            <p className="text-xl sm:text-2xl font-bold" style={{ color: 'var(--color-text-ingreso)' }}>
               Bs{reportes.totalIngresos.toFixed(2)}
             </p>
           </Card>
           <Card>
-            <p className="text-sm text-gray-500">Gastos</p>
-            <p className="text-2xl font-bold text-red-600">Bs{reportes.totalGastos.toFixed(2)}</p>
+            <p className="text-sm" style={{ color: 'var(--color-text-muted)' }}>Gastos</p>
+            <p className="text-xl sm:text-2xl font-bold" style={{ color: 'var(--color-text-gasto)' }}>Bs{reportes.totalGastos.toFixed(2)}</p>
           </Card>
           <Card>
-            <p className="text-sm text-gray-500">Balance</p>
+            <p className="text-sm" style={{ color: 'var(--color-text-muted)' }}>Balance</p>
             <p
-              className={`text-2xl font-bold ${reportes.balance >= 0 ? 'text-green-600' : 'text-red-600'}`}
+              className={`text-xl sm:text-2xl font-bold`}
+              style={{ color: reportes.balance >= 0 ? 'var(--color-text-ingreso)' : 'var(--color-text-gasto)' }}
             >
               Bs{reportes.balance.toFixed(2)}
             </p>
@@ -264,8 +277,8 @@ export const TransaccionesPage: React.FC = () => {
         </div>
       )}
 
-      <div className="flex flex-wrap justify-between items-center gap-4 mb-6">
-        <h1 className="text-2xl font-bold">Transacciones</h1>
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-4 sm:mb-6">
+        <h1 className="text-xl sm:text-2xl font-bold">Transacciones</h1>
         
         <div className="flex flex-wrap gap-2">
           {/* Dropdown Excel */}
@@ -274,23 +287,37 @@ export const TransaccionesPage: React.FC = () => {
               Excel ▼
             </Button>
             {excelDropdownOpen && (
-              <div className="absolute right-0 mt-1 w-40 bg-white border rounded shadow-lg z-10">
+              <div
+                className="absolute right-0 mt-1 w-40 border rounded shadow-lg z-10"
+                style={{ backgroundColor: 'var(--color-dropdown-bg)', borderColor: 'var(--color-border)' }}
+              >
                 <button
                   onClick={() => {
                     downloadTemplate('transaccion');
                     setExcelDropdownOpen(false);
                   }}
-                  className="block w-full text-left px-4 py-2 hover:bg-gray-100"
+                  className="block w-full text-left px-4 py-2 text-sm"
+                  style={{ color: 'var(--color-text)' }}
+                  onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.backgroundColor = 'var(--color-dropdown-hover)')}
+                  onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.backgroundColor = 'transparent')}
                 >
                   Template
                 </button>
-                <label className="block w-full text-left px-4 py-2 hover:bg-gray-100 cursor-pointer">
+                <label
+                  className="block w-full text-left px-4 py-2 cursor-pointer text-sm"
+                  style={{ color: 'var(--color-text)' }}
+                  onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.backgroundColor = 'var(--color-dropdown-hover)')}
+                  onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.backgroundColor = 'transparent')}
+                >
                   Importar
                   <input type="file" accept=".xlsx,.xls" onChange={handleImport} className="hidden" />
                 </label>
                 <button
                   onClick={handleExport}
-                  className="block w-full text-left px-4 py-2 hover:bg-gray-100"
+                  className="block w-full text-left px-4 py-2 text-sm"
+                  style={{ color: 'var(--color-text)' }}
+                  onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.backgroundColor = 'var(--color-dropdown-hover)')}
+                  onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.backgroundColor = 'transparent')}
                 >
                   Exportar
                 </button>
@@ -312,43 +339,74 @@ export const TransaccionesPage: React.FC = () => {
               setModalOpen(true);
             }}
           >
-            + Nueva Transacción
+            + Nueva
           </Button>
         </div>
       </div>
 
       {/* Filtros */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
-        <Input
-          label="Fecha inicio"
-          type="date"
-          value={filtros.fechaInicio || ''}
-          onChange={(e) => setFiltros({ ...filtros, fechaInicio: e.target.value })}
-        />
-        <Input
-          label="Fecha fin"
-          type="date"
-          value={filtros.fechaFin || ''}
-          onChange={(e) => setFiltros({ ...filtros, fechaFin: e.target.value })}
-        />
-        <Select
-          label="Categoría"
-          value={filtros.categoriaId || ''}
-          onChange={(e) => setFiltros({ ...filtros, categoriaId: e.target.value })}
-          options={[
-            { value: '', label: 'Todas' },
-            ...categorias.map((c) => ({ value: c.id, label: c.nombre })),
-          ]}
-        />
-        <Select
-          label="Motivo"
-          value={filtros.motivoId || ''}
-          onChange={(e) => setFiltros({ ...filtros, motivoId: e.target.value })}
-          options={[
-            { value: '', label: 'Todos' },
-            ...motivos.map((m) => ({ value: m.id, label: m.nombre })),
-          ]}
-        />
+      <div className="mb-3 sm:mb-4">
+        <button
+          className="cursor-pointer text-sm font-medium select-none flex items-center gap-2 w-full"
+          style={{ color: 'var(--color-text-secondary)' }}
+          onClick={() => setFiltrosAbiertos(!filtrosAbiertos)}
+        >
+          <svg
+            className={`w-4 h-4 transition-transform ${filtrosAbiertos ? 'rotate-90' : ''}`}
+            fill="none" stroke="currentColor" viewBox="0 0 24 24"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+          </svg>
+          Filtros
+          {Object.values(filtros).some(v => v) && (
+            <span className="text-xs px-1.5 py-0.5 rounded-full" style={{ backgroundColor: 'var(--color-primary)', color: 'var(--color-primary-text)' }}>
+              activos
+            </span>
+          )}
+        </button>
+
+        {filtrosAbiertos && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 mt-3 p-3 rounded-lg" style={{ backgroundColor: 'var(--color-bg-secondary)' }}>
+            <Input
+              label="Fecha inicio"
+              type="date"
+              value={filtrosTemp.fechaInicio || ''}
+              onChange={(e) => setFiltrosTemp({ ...filtrosTemp, fechaInicio: e.target.value })}
+            />
+            <Input
+              label="Fecha fin"
+              type="date"
+              value={filtrosTemp.fechaFin || ''}
+              onChange={(e) => setFiltrosTemp({ ...filtrosTemp, fechaFin: e.target.value })}
+            />
+            <Select
+              label="Categoría"
+              value={filtrosTemp.categoriaId || ''}
+              onChange={(e) => setFiltrosTemp({ ...filtrosTemp, categoriaId: e.target.value })}
+              options={[
+                { value: '', label: 'Todas' },
+                ...categorias.map((c) => ({ value: c.id, label: c.nombre })),
+              ]}
+            />
+            <Select
+              label="Motivo"
+              value={filtrosTemp.motivoId || ''}
+              onChange={(e) => setFiltrosTemp({ ...filtrosTemp, motivoId: e.target.value })}
+              options={[
+                { value: '', label: 'Todos' },
+                ...motivos.map((m) => ({ value: m.id, label: m.nombre })),
+              ]}
+            />
+            <div className="flex items-end gap-2 col-span-1 sm:col-span-2 md:col-span-4">
+              <Button onClick={aplicarFiltros} className="w-full sm:w-auto">
+                🔍 Aplicar filtros
+              </Button>
+              <Button variant="secondary" onClick={limpiarFiltros} className="w-full sm:w-auto">
+                ✕ Limpiar
+              </Button>
+            </div>
+          </div>
+        )}
       </div>
 
       {error && <ErrorMessage message={error} />}
@@ -356,35 +414,37 @@ export const TransaccionesPage: React.FC = () => {
       <div className="space-y-2">
         {transacciones.map((trans) => (
           <Card key={trans.id}>
-            <div className="flex justify-between items-center">
-              <div>
-                <div className="flex items-center gap-2">
+            <div className="flex justify-between items-start gap-2">
+              <div className="flex-1 min-w-0">
+                <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
                   <span
-                    className={`font-bold ${trans.categoria?.tipo === 'ingreso' ? 'text-green-600' : 'text-red-600'}`}
+                    className={`font-bold text-base ${trans.categoria?.tipo === 'ingreso' ? '' : ''}`}
+                    style={{ color: trans.categoria?.tipo === 'ingreso' ? 'var(--color-text-ingreso)' : 'var(--color-text-gasto)' }}
                   >
                     {trans.categoria?.tipo === 'ingreso' ? '+' : '-'}Bs
                     {Number(trans.monto).toFixed(2)}
                   </span>
-                  <span className="font-medium">{trans.motivo?.nombre}</span>
+                  <span className="font-medium text-sm truncate">{trans.motivo?.nombre}</span>
                 </div>
-                <p className="text-sm text-gray-500">
+                <p className="text-sm" style={{ color: 'var(--color-text-muted)' }}>
                   {trans.categoria?.nombre} • {formatFecha(trans.fecha)}
                 </p>
-                {trans.descripcion && <p className="text-sm text-gray-400">{trans.descripcion}</p>}
+                {trans.descripcion && <p className="text-sm truncate" style={{ color: 'var(--color-text-muted)' }}>{trans.descripcion}</p>}
                 {trans.archivos && trans.archivos.length > 0 && (
                   <p className="text-xs text-blue-500">{trans.archivos.length} archivo(s)</p>
                 )}
               </div>
-              <div className="flex gap-2">
+              <div className="flex gap-3 shrink-0">
                 <button
                   onClick={() => openEdit(trans)}
-                  className="text-blue-600 hover:text-blue-800"
+                  className="text-blue-600 hover:text-blue-800 text-sm min-w-[60px]"
                 >
                   Editar
                 </button>
                 <button
                   onClick={() => handleDelete(trans.id)}
-                  className="text-red-600 hover:text-red-800"
+                  className="text-sm min-w-[60px]"
+                  style={{ color: 'var(--color-danger)' }}
                 >
                   Eliminar
                 </button>
@@ -396,22 +456,25 @@ export const TransaccionesPage: React.FC = () => {
 
       {/* Paginación */}
       {totalPages > 1 && (
-        <div className="flex items-center justify-between mt-6 px-2">
-          <p className="text-sm text-gray-500">
+        <div className="flex flex-col sm:flex-row items-center justify-between mt-4 sm:mt-6 gap-3 px-2">
+          <p className="text-sm text-center sm:text-left" style={{ color: 'var(--color-text-muted)' }}>
             Mostrando {((page - 1) * pageSize) + 1}–{Math.min(page * pageSize, totalItems)} de {totalItems}
           </p>
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1 flex-wrap justify-center">
             <button
               onClick={() => setPage(p => Math.max(1, p - 1))}
               disabled={page === 1}
-              className="px-3 py-1 rounded border text-sm disabled:opacity-40 disabled:cursor-not-allowed hover:bg-gray-50"
+              className="px-3 py-2 rounded border text-sm disabled:opacity-40 disabled:cursor-not-allowed active:scale-95"
+              style={{ color: 'var(--color-text)' }}
+              onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.backgroundColor = 'var(--color-dropdown-hover)')}
+              onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.backgroundColor = 'transparent')}
             >
-              ← Anterior
+              ← Ant
             </button>
             
             {(() => {
               const pages: (number | string)[] = [];
-              const delta = 2; // páginas a cada lado de la actual
+              const delta = 1; // menos páginas en mobile
               
               for (let i = 1; i <= totalPages; i++) {
                 if (
@@ -427,17 +490,28 @@ export const TransaccionesPage: React.FC = () => {
               
               return pages.map((p, idx) => {
                 if (p === '...') {
-                  return <span key={`ellipsis-${idx}`} className="w-9 h-9 flex items-center justify-center text-gray-400">…</span>;
+                  return <span key={`ellipsis-${idx}`} className="w-8 h-8 flex items-center justify-center text-sm" style={{ color: 'var(--color-text-muted)' }}>…</span>;
                 }
                 return (
                   <button
                     key={p}
                     onClick={() => setPage(p as number)}
-                    className={`w-9 h-9 rounded text-sm font-medium transition-colors ${
+                    className={`w-8 h-8 rounded text-sm font-medium transition-colors active:scale-95 ${
                       p === page
-                        ? 'bg-blue-600 text-white'
-                        : 'hover:bg-gray-100 text-gray-700'
+                        ? ''
+                        : ''
                     }`}
+                    style={
+                      p === page
+                        ? { backgroundColor: 'var(--color-primary)', color: 'var(--color-primary-text)' }
+                        : { color: 'var(--color-text-secondary)' }
+                    }
+                    onMouseEnter={(e) => {
+                      if (p !== page) (e.currentTarget as HTMLElement).style.backgroundColor = 'var(--color-dropdown-hover)';
+                    }}
+                    onMouseLeave={(e) => {
+                      if (p !== page) (e.currentTarget as HTMLElement).style.backgroundColor = 'transparent';
+                    }}
                   >
                     {p}
                   </button>
@@ -448,16 +522,19 @@ export const TransaccionesPage: React.FC = () => {
             <button
               onClick={() => setPage(p => Math.min(totalPages, p + 1))}
               disabled={page === totalPages}
-              className="px-3 py-1 rounded border text-sm disabled:opacity-40 disabled:cursor-not-allowed hover:bg-gray-50"
+              className="px-3 py-2 rounded border text-sm disabled:opacity-40 disabled:cursor-not-allowed active:scale-95"
+              style={{ color: 'var(--color-text)' }}
+              onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.backgroundColor = 'var(--color-dropdown-hover)')}
+              onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.backgroundColor = 'transparent')}
             >
-              Siguiente →
+              Sig →
             </button>
           </div>
         </div>
       )}
 
       {transacciones.length === 0 && !error && (
-        <p className="text-gray-500 text-center py-8">No hay transacciones. ¡Registra una!</p>
+        <p className="text-center py-8" style={{ color: 'var(--color-text-muted)' }}>No hay transacciones. ¡Registra una!</p>
       )}
 
       <Modal
