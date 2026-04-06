@@ -102,15 +102,15 @@ export const ReportesPage: React.FC = () => {
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <Select
             label="Mes"
-            value={mes}
+            value={String(mes)}
             onChange={(e) => setMes(parseInt(e.target.value))}
-            options={meses.map((m) => ({ value: m.value, label: m.label }))}
+            options={meses.map((m) => ({ value: String(m.value), label: m.label }))}
           />
           <Select
             label="Año"
-            value={anio}
+            value={String(anio)}
             onChange={(e) => setAnio(parseInt(e.target.value))}
-            options={anios.map((a) => ({ value: a, label: String(a) }))}
+            options={anios.map((a) => ({ value: String(a), label: String(a) }))}
           />
           <div className="flex items-end">
             <label className="flex items-center gap-2 cursor-pointer select-none" style={{ color: 'var(--color-text-secondary)' }}>

@@ -33,7 +33,6 @@ export const ConfiguracionPage: React.FC = () => {
                 style={{
                   backgroundColor: theme.colors.card,
                   borderColor: isActive ? theme.colors.primary : theme.colors.border,
-                  ringColor: theme.colors.primary,
                 }}
               >
                 {/* Preview bar */}

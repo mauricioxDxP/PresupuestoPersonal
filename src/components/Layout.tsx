@@ -1,10 +1,8 @@
 import { useState } from 'react';
 import { NavLink } from 'react-router-dom';
-import { useTheme } from '../context/ThemeContext';
 
 export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [menuOpen, setMenuOpen] = useState(false);
-  const { currentTheme } = useTheme();
 
   const linkClass = ({ isActive }: { isActive: boolean }) =>
     `block px-4 py-3 rounded transition-all text-base ${
