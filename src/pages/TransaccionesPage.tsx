@@ -19,7 +19,6 @@ export const TransaccionesPage: React.FC = () => {
   const [loadingTransacciones, setLoadingTransacciones] = useState(true);
   const [loadingCategorias, setLoadingCategorias] = useState(true);
   const [loadingMotivos, setLoadingMotivos] = useState(true);
-  const [loadingReportes, setLoadingReportes] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [editando, setEditando] = useState<Transaccion | null>(null);
@@ -95,14 +94,11 @@ export const TransaccionesPage: React.FC = () => {
 
   const fetchReportes = useCallback(async () => {
     try {
-      setLoadingReportes(true);
       const data = await transaccionesService.getReportes(filtros);
       setReportes(data);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Error al cargar reportes';
       setError(message);
-    } finally {
-      setLoadingReportes(false);
     }
   }, [filtros]);
 
