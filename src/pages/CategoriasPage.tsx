@@ -202,13 +202,13 @@ export const CategoriasPage: React.FC = () => {
     }
   };
 
-  const handleExport = () => {
+  const handleExport = async () => {
     const data = categorias.map((c) => ({
       nombre: c.nombre,
       tipo: c.tipo,
       orden: c.orden,
     }));
-    exportToExcel(data, 'categorias', 'Categorías');
+    await exportToExcel(data, 'categorias', 'Categorías');
     setExcelDropdownOpen(false);
   };
 
@@ -281,8 +281,8 @@ export const CategoriasPage: React.FC = () => {
                 style={{ backgroundColor: 'var(--color-dropdown-bg)', borderColor: 'var(--color-border)' }}
               >
                 <button
-                  onClick={() => {
-                    downloadTemplate('categoria');
+                  onClick={async () => {
+                    await downloadTemplate('categoria');
                     setExcelDropdownOpen(false);
                   }}
                   className="block w-full text-left px-4 py-2 text-sm"

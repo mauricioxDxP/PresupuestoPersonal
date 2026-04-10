@@ -164,7 +164,7 @@ export const TransaccionesPage: React.FC = () => {
     }
   };
 
-  const handleExport = () => {
+  const handleExport = async () => {
     const data = transacciones.map((t) => ({
       monto: Number(t.monto),
       fecha: t.fecha.split('T')[0],
@@ -173,7 +173,7 @@ export const TransaccionesPage: React.FC = () => {
       motivo: t.motivo?.nombre,
       facturable: t.facturable,
     }));
-    exportToExcel(data, 'transacciones', 'Transacciones');
+    await exportToExcel(data, 'transacciones', 'Transacciones');
     setExcelDropdownOpen(false);
   };
 
@@ -332,8 +332,8 @@ export const TransaccionesPage: React.FC = () => {
                 style={{ backgroundColor: 'var(--color-dropdown-bg)', borderColor: 'var(--color-border)' }}
               >
                 <button
-                  onClick={() => {
-                    downloadTemplate('transaccion');
+                  onClick={async () => {
+                    await downloadTemplate('transaccion');
                     setExcelDropdownOpen(false);
                   }}
                   className="block w-full text-left px-4 py-2 text-sm"

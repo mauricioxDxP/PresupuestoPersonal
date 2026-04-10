@@ -1,4 +1,16 @@
-import * as XLSX from 'xlsx';
+// Dynamic import wrapper for xlsx - only loaded when Excel functions are called
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let xlsxModule: any = null;
+
+/**
+ * Lazy load xlsx module - only called when needed
+ */
+async function getXLSX() {
+  if (!xlsxModule) {
+    xlsxModule = await import('xlsx');
+  }
+  return xlsxModule;
+}
 
 export interface ExcelRow {
   nombre: string;
@@ -17,18 +29,21 @@ export interface TransaccionExcelRow {
   facturable?: boolean;
 }
 
-export const exportToExcel = <T>(
-  data: T[],
+export const exportToExcel = async (
+  data: unknown[],
   filename: string,
   sheetName: string = 'Sheet1'
-): void => {
+): Promise<void> => {
+  const XLSX = await getXLSX();
   const worksheet = XLSX.utils.json_to_sheet(data);
   const workbook = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(workbook, worksheet, sheetName);
   XLSX.writeFile(workbook, `${filename}.xlsx`);
 };
 
-export const importFromExcel = (file: File): Promise<ExcelRow[]> => {
+export const importFromExcel = async (file: File): Promise<ExcelRow[]> => {
+  const XLSX = await getXLSX();
+  
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     
@@ -38,8 +53,8 @@ export const importFromExcel = (file: File): Promise<ExcelRow[]> => {
         const workbook = XLSX.read(data, { type: 'binary' });
         const sheetName = workbook.SheetNames[0];
         const worksheet = workbook.Sheets[sheetName];
-        const json = XLSX.utils.sheet_to_json<ExcelRow>(worksheet);
-        resolve(json);
+        const json = XLSX.utils.sheet_to_json(worksheet);
+        resolve(json as ExcelRow[]);
       } catch (error) {
         reject(error);
       }
@@ -80,7 +95,9 @@ export const parseExcelDate = (value: unknown): string | null => {
   return null;
 };
 
-export const importTransaccionesFromExcel = (file: File): Promise<TransaccionExcelRow[]> => {
+export const importTransaccionesFromExcel = async (file: File): Promise<TransaccionExcelRow[]> => {
+  const XLSX = await getXLSX();
+  
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     
@@ -90,19 +107,19 @@ export const importTransaccionesFromExcel = (file: File): Promise<TransaccionExc
         const workbook = XLSX.read(data, { type: 'binary' });
         const sheetName = workbook.SheetNames[0];
         const worksheet = workbook.Sheets[sheetName];
-        const json = XLSX.utils.sheet_to_json<TransaccionExcelRow>(worksheet, { defval: null });
+        const json = XLSX.utils.sheet_to_json(worksheet, { defval: null });
         
         // Normalizar fechas: convertir números de serie Excel a strings YYYY-MM-DD
-        const normalized = json.map(row => ({
+        const normalized = (json as Record<string, unknown>[]).map(row => ({
           ...row,
-          fecha: parseExcelDate(row.fecha) ?? row.fecha,
-          descripcion: row.descripcion ?? '',
-          categoria: row.categoria ?? '',
-          motivo: row.motivo ?? '',
-          facturable: row.facturable ?? false,
+          fecha: parseExcelDate(row.fecha as string) ?? row.fecha,
+          descripcion: (row.descripcion as string) ?? '',
+          categoria: (row.categoria as string) ?? '',
+          motivo: (row.motivo as string) ?? '',
+          facturable: (row.facturable as boolean) ?? false,
         }));
         
-        resolve(normalized);
+        resolve(normalized as TransaccionExcelRow[]);
       } catch (error) {
         reject(error);
       }
@@ -126,14 +143,14 @@ const formatFechaCorregida = (fecha: string): string => {
   return `${day}/${month}/${year}`;
 };
 
-export const downloadTemplate = (type: 'categoria' | 'motivo' | 'transaccion'): void => {
+export const downloadTemplate = async (type: 'categoria' | 'motivo' | 'transaccion'): Promise<void> => {
   if (type === 'categoria') {
-    exportToExcel([{ nombre: 'Ejemplo', tipo: 'gasto' }], 'template_categorias', 'Categorías');
+    await exportToExcel([{ nombre: 'Ejemplo', tipo: 'gasto' }], 'template_categorias', 'Categorías');
   } else if (type === 'motivo') {
-    exportToExcel([{ nombre: 'Ejemplo', categoriaId: 'Nombre de categoría', orden: 1 }], 'template_motivos', 'Motivos');
+    await exportToExcel([{ nombre: 'Ejemplo', categoriaId: 'Nombre de categoría', orden: 1 }], 'template_motivos', 'Motivos');
   } else {
     // Template para transacciones con nombres
-    exportToExcel([{ 
+    await exportToExcel([{ 
       monto: 1000, 
       fecha: '2024-01-01', 
       descripcion: 'Ejemplo', 
@@ -171,10 +188,11 @@ export interface ReporteMensualData {
   nombreMes: string;
 }
 
-export const generateMonthlyReport = (
+export const generateMonthlyReport = async (
   data: ReporteMensualData,
   includeEmpty: boolean,
-): void => {
+): Promise<void> => {
+  const XLSX = await getXLSX();
   const { transacciones, categorias, motivos, nombreMes } = data;
 
   // Capitalizar nombre del mes

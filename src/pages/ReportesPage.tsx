@@ -67,7 +67,7 @@ export const ReportesPage: React.FC = () => {
     try {
       setGenerando(true);
       const data = reportePreview || await transaccionesService.getReporteMensual(anio, mes);
-      generateMonthlyReport(data, includeEmpty);
+      await generateMonthlyReport(data, includeEmpty);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Error al generar el reporte';
       setError(message);

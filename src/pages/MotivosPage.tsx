@@ -258,13 +258,13 @@ export const MotivosPage: React.FC = () => {
     }
   };
 
-  const handleExport = () => {
+  const handleExport = async () => {
     const data = motivos.map((m) => ({
       nombre: m.nombre,
       categoria: m.categoria?.nombre,
       orden: m.orden,
     }));
-    exportToExcel(data, 'motivos', 'Motivos');
+    await exportToExcel(data, 'motivos', 'Motivos');
     setExcelDropdownOpen(false);
   };
 
@@ -370,8 +370,8 @@ export const MotivosPage: React.FC = () => {
                 style={{ backgroundColor: 'var(--color-dropdown-bg)', borderColor: 'var(--color-border)' }}
               >
                 <button
-                  onClick={() => {
-                    downloadTemplate('motivo');
+                  onClick={async () => {
+                    await downloadTemplate('motivo');
                     setExcelDropdownOpen(false);
                   }}
                   className="block w-full text-left px-4 py-2 text-sm"
