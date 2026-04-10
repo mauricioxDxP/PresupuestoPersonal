@@ -3,3 +3,4 @@ export * from './categorias';
 export * from './motivos';
 export * from './transacciones';
 export * from './archivos';
+export * from './cache';
