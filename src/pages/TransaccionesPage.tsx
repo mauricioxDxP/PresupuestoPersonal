@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { transaccionesService, categoriasService, motivosService } from '../services';
 import type {
   Transaccion,
@@ -16,7 +16,10 @@ export const TransaccionesPage: React.FC = () => {
   const [categorias, setCategorias] = useState<Categoria[]>([]);
   const [motivos, setMotivos] = useState<Motivo[]>([]);
   const [reportes, setReportes] = useState<Reportes | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loadingTransacciones, setLoadingTransacciones] = useState(true);
+  const [loadingCategorias, setLoadingCategorias] = useState(true);
+  const [loadingMotivos, setLoadingMotivos] = useState(true);
+  const [loadingReportes, setLoadingReportes] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [editando, setEditando] = useState<Transaccion | null>(null);
@@ -49,38 +52,73 @@ export const TransaccionesPage: React.FC = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const cargarDatos = async () => {
+  const fetchTransacciones = useCallback(async () => {
     try {
-      setLoading(true);
-      const [transData, categoriasData, motivosData, reportesData] = await Promise.all([
-        transaccionesService.getAll(filtros, { page, limit: pageSize }),
-        categoriasService.getAll(),
-        motivosService.getAll(),
-        transaccionesService.getReportes(filtros),
-      ]);
-      setTransacciones(transData.data);
-      setTotalPages(transData.meta.totalPages);
-      setTotalItems(transData.meta.total);
-      setCategorias(categoriasData);
-      setMotivos(motivosData);
-      setReportes(reportesData);
-      setError(null);
+      setLoadingTransacciones(true);
+      const data = await transaccionesService.getAll(filtros, { page, limit: pageSize });
+      setTransacciones(data.data);
+      setTotalPages(data.meta.totalPages);
+      setTotalItems(data.meta.total);
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Error al cargar datos';
+      const message = err instanceof Error ? err.message : 'Error al cargar transacciones';
       setError(message);
     } finally {
-      setLoading(false);
+      setLoadingTransacciones(false);
     }
-  };
+  }, [filtros, page]);
 
-  useEffect(() => {
-    setPage(1); // Reset page cuando cambian filtros
+  const fetchCategorias = useCallback(async () => {
+    try {
+      setLoadingCategorias(true);
+      const data = await categoriasService.getAll();
+      setCategorias(data);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Error al cargar categorías';
+      setError(message);
+    } finally {
+      setLoadingCategorias(false);
+    }
+  }, []);
+
+  const fetchMotivos = useCallback(async () => {
+    try {
+      setLoadingMotivos(true);
+      const data = await motivosService.getAll();
+      setMotivos(data);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Error al cargar motivos';
+      setError(message);
+    } finally {
+      setLoadingMotivos(false);
+    }
+  }, []);
+
+  const fetchReportes = useCallback(async () => {
+    try {
+      setLoadingReportes(true);
+      const data = await transaccionesService.getReportes(filtros);
+      setReportes(data);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Error al cargar reportes';
+      setError(message);
+    } finally {
+      setLoadingReportes(false);
+    }
   }, [filtros]);
 
+  // Fetch independientes - cada uno se carga cuando puede
   useEffect(() => {
-    cargarDatos();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filtros, page]);
+    fetchTransacciones();
+    fetchReportes();
+  }, [fetchTransacciones, fetchReportes]);
+
+  useEffect(() => {
+    fetchCategorias();
+  }, [fetchCategorias]);
+
+  useEffect(() => {
+    fetchMotivos();
+  }, [fetchMotivos]);
 
   const aplicarFiltros = () => {
     setFiltros(filtrosTemp);
@@ -110,7 +148,8 @@ export const TransaccionesPage: React.FC = () => {
         descripcion: '',
         facturable: false,
       });
-      cargarDatos();
+      fetchTransacciones();
+      fetchReportes();
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Error al guardar';
       setError(message);
@@ -121,7 +160,8 @@ export const TransaccionesPage: React.FC = () => {
     if (!confirm('¿Estás seguro de eliminar esta transacción?')) return;
     try {
       await transaccionesService.delete(id);
-      cargarDatos();
+      fetchTransacciones();
+      fetchReportes();
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Error al eliminar';
       setError(message);
@@ -213,7 +253,8 @@ export const TransaccionesPage: React.FC = () => {
         alert(`Importación exitosa: ${successCount} transacción(es) importada(s).`);
       }
       
-      cargarDatos();
+      fetchTransacciones();
+      fetchReportes();
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Error al importar';
       setError(message);
@@ -248,7 +289,10 @@ export const TransaccionesPage: React.FC = () => {
     return `${day}/${month}/${year}`;
   };
 
-  if (loading) return <Loading />;
+  // Solo mostrar loading inicial si no hay datos todavía
+  const showInitialLoading = !transacciones.length && !categorias.length && !motivos.length && (loadingTransacciones || loadingCategorias || loadingMotivos);
+
+  if (showInitialLoading) return <Loading />;
 
   return (
     <div className="p-3 sm:p-4 md:p-6">

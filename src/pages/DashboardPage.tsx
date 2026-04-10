@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { transaccionesService } from '../services';
 import type { Reportes, Transaccion } from '../types';
 import { Card, Loading, ErrorMessage } from '../components/UI';
@@ -6,38 +6,55 @@ import { Card, Loading, ErrorMessage } from '../components/UI';
 export const DashboardPage: React.FC = () => {
   const [reportes, setReportes] = useState<Reportes | null>(null);
   const [transaccionesRecientes, setTransaccionesRecientes] = useState<Transaccion[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [loadingReportes, setLoadingReportes] = useState(true);
+  const [loadingTransacciones, setLoadingTransacciones] = useState(true);
+  const [errorReportes, setErrorReportes] = useState<string | null>(null);
+  const [errorTransacciones, setErrorTransacciones] = useState<string | null>(null);
 
-  const cargarDatos = async () => {
+  const fetchReportes = useCallback(async () => {
     try {
-      setLoading(true);
-      const [reportesData, transData] = await Promise.all([
-        transaccionesService.getReportes(),
-        transaccionesService.getAll(),
-      ]);
-      setReportes(reportesData);
-      setTransaccionesRecientes(transData.data.slice(0, 5));
-      setError(null);
+      setLoadingReportes(true);
+      setErrorReportes(null);
+      const data = await transaccionesService.getReportes();
+      setReportes(data);
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Error al cargar datos';
-      setError(message);
+      const message = err instanceof Error ? err.message : 'Error al cargar reportes';
+      setErrorReportes(message);
     } finally {
-      setLoading(false);
+      setLoadingReportes(false);
     }
-  };
-
-  useEffect(() => {
-    cargarDatos();
   }, []);
 
-  if (loading) return <Loading />;
+  const fetchTransaccionesRecientes = useCallback(async () => {
+    try {
+      setLoadingTransacciones(true);
+      setErrorTransacciones(null);
+      const data = await transaccionesService.getAll({}, { page: 1, limit: 5 });
+      setTransaccionesRecientes(data.data);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Error al cargar transacciones';
+      setErrorTransacciones(message);
+    } finally {
+      setLoadingTransacciones(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchReportes();
+    fetchTransaccionesRecientes();
+  }, [fetchReportes, fetchTransaccionesRecientes]);
+
+  // Solo mostrar loading inicial si no hay ningún dato todavía
+  const showInitialLoading = !reportes && !transaccionesRecientes.length && loadingReportes && loadingTransacciones;
+  const hasError = errorReportes || errorTransacciones;
+
+  if (showInitialLoading) return <Loading />;
 
   return (
     <div className="p-3 sm:p-4 md:p-6">
       <h1 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6">Dashboard</h1>
 
-      {error && <ErrorMessage message={error} />}
+      {hasError && <ErrorMessage message={errorReportes || errorTransacciones || ''} />}
 
       {/* Totales */}
       {reportes && (

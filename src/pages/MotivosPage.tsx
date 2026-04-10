@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   DndContext,
   closestCenter,
@@ -124,7 +124,8 @@ const CategoriaGroup: React.FC<CategoriaGroupProps> = ({
 export const MotivosPage: React.FC = () => {
   const [motivos, setMotivos] = useState<Motivo[]>([]);
   const [categorias, setCategorias] = useState<Categoria[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loadingMotivos, setLoadingMotivos] = useState(true);
+  const [loadingCategorias, setLoadingCategorias] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [modalMultipleOpen, setModalMultipleOpen] = useState(false);
@@ -156,28 +157,40 @@ export const MotivosPage: React.FC = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const cargarDatos = async () => {
+  const fetchMotivos = useCallback(async () => {
     try {
-      setLoading(true);
-      const [motivosData, categoriasData] = await Promise.all([
-        motivosService.getAll(filtroCategoria || undefined),
-        categoriasService.getAll(),
-      ]);
-      setMotivos(motivosData);
-      setCategorias(categoriasData);
-      setError(null);
+      setLoadingMotivos(true);
+      const data = await motivosService.getAll(filtroCategoria || undefined);
+      setMotivos(data);
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Error al cargar datos';
+      const message = err instanceof Error ? err.message : 'Error al cargar motivos';
       setError(message);
     } finally {
-      setLoading(false);
+      setLoadingMotivos(false);
     }
-  };
+  }, [filtroCategoria]);
+
+  const fetchCategorias = useCallback(async () => {
+    try {
+      setLoadingCategorias(true);
+      const data = await categoriasService.getAll();
+      setCategorias(data);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Error al cargar categorías';
+      setError(message);
+    } finally {
+      setLoadingCategorias(false);
+    }
+  }, []);
+
+  // Fetch independientes
+  useEffect(() => {
+    fetchMotivos();
+  }, [fetchMotivos]);
 
   useEffect(() => {
-    cargarDatos();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filtroCategoria]);
+    fetchCategorias();
+  }, [fetchCategorias]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -190,7 +203,7 @@ export const MotivosPage: React.FC = () => {
       setModalOpen(false);
       setEditando(null);
       setForm({ nombre: '', categoriaId: '', mostrarSinTransacciones: false, orden: 0 });
-      cargarDatos();
+      fetchMotivos();
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Error al guardar';
       setError(message);
@@ -227,7 +240,7 @@ export const MotivosPage: React.FC = () => {
 
       setModalMultipleOpen(false);
       setMultipleForm({ lista: '', categoriaId: '', mostrarSinTransacciones: false });
-      cargarDatos();
+      fetchMotivos();
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Error al guardar';
       setError(message);
@@ -238,7 +251,7 @@ export const MotivosPage: React.FC = () => {
     if (!confirm('¿Estás seguro de eliminar este motivo?')) return;
     try {
       await motivosService.delete(id);
-      cargarDatos();
+      fetchMotivos();
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Error al eliminar';
       setError(message);
@@ -274,7 +287,7 @@ export const MotivosPage: React.FC = () => {
           });
         }
       }
-      cargarDatos();
+      fetchMotivos();
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Error al importar';
       setError(message);
@@ -302,7 +315,7 @@ export const MotivosPage: React.FC = () => {
       await motivosService.update(reordered[i].id, { ...reordered[i], orden: i + 1 });
     }
 
-    cargarDatos();
+    fetchMotivos();
   };
 
   const openEdit = (motivo: Motivo) => {
@@ -336,7 +349,10 @@ export const MotivosPage: React.FC = () => {
     return grupos;
   }, [motivos, categorias, filtroCategoria]);
 
-  if (loading) return <Loading />;
+  // Solo mostrar loading inicial si no hay datos todavía
+  const showInitialLoading = !motivos.length && !categorias.length && (loadingMotivos || loadingCategorias);
+
+  if (showInitialLoading) return <Loading />;
 
   return (
     <div className="p-3 sm:p-4 md:p-6">
