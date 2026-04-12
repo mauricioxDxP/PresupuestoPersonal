@@ -82,6 +82,8 @@ const SortableCategoria: React.FC<SortableCategoriaProps> = ({ categoria, onEdit
 
 export const CategoriasPage: React.FC = () => {
   const [categorias, setCategorias] = useState<Categoria[]>([]);
+  const [originalOrder, setOriginalOrder] = useState<Map<string, number>>(new Map());
+  const [hasReorderChanges, setHasReorderChanges] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
@@ -89,6 +91,7 @@ export const CategoriasPage: React.FC = () => {
   const [editando, setEditando] = useState<Categoria | null>(null);
   const [filtroTipo, setFiltroTipo] = useState<string>('');
   const [excelDropdownOpen, setExcelDropdownOpen] = useState(false);
+  const [sincronizing, setSincronizando] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const [form, setForm] = useState<CreateCategoriaDto>({
@@ -130,6 +133,13 @@ export const CategoriasPage: React.FC = () => {
       setLoading(true);
       const data = await categoriasService.getAll(filtroTipo || undefined);
       setCategorias(data);
+      
+      // Guardar orden original para detectar cambios
+      const orderMap = new Map<string, number>();
+      data.forEach((cat, idx) => orderMap.set(cat.id, idx));
+      setOriginalOrder(orderMap);
+      setHasReorderChanges(false);
+      
       setError(null);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Error al cargar categorías';
@@ -247,13 +257,37 @@ export const CategoriasPage: React.FC = () => {
     const newIndex = categorias.findIndex((c) => c.id === over.id);
 
     const reordered = arrayMove(categorias, oldIndex, newIndex);
+    setCategorias(reordered);
 
-    // Actualizar órdenes en la base de datos
-    for (let i = 0; i < reordered.length; i++) {
-      await categoriasService.update(reordered[i].id, { orden: i + 1 });
+    // Verificar si hay cambios respecto al orden original
+    const hasChanges = reordered.some((cat, idx) => originalOrder.get(cat.id) !== idx);
+    setHasReorderChanges(hasChanges);
+  };
+
+  const sincronizarOrden = async () => {
+    try {
+      setSincronizando(true);
+      
+      // Solo actualizar los que cambiaron de posición
+      for (let i = 0; i < categorias.length; i++) {
+        const cat = categorias[i];
+        const originalIdx = originalOrder.get(cat.id);
+        if (originalIdx !== i) {
+          await categoriasService.update(cat.id, { orden: i + 1 });
+        }
+      }
+
+      // Actualizar el mapa original
+      const newOrderMap = new Map<string, number>();
+      categorias.forEach((cat, idx) => newOrderMap.set(cat.id, idx));
+      setOriginalOrder(newOrderMap);
+      setHasReorderChanges(false);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Error al sincronizar orden';
+      setError(message);
+    } finally {
+      setSincronizando(false);
     }
-
-    cargarCategorias();
   };
 
   const openEdit = (cat: Categoria) => {
@@ -327,6 +361,12 @@ export const CategoriasPage: React.FC = () => {
           }}>
             + Múltiples
           </Button>
+          
+          {hasReorderChanges && (
+            <Button onClick={sincronizarOrden} disabled={sincronizing}>
+              {sincronizing ? 'Sincronizando...' : '🔄 Sincronizar'}
+            </Button>
+          )}
         </div>
       </div>
 

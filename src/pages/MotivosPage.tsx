@@ -124,6 +124,8 @@ const CategoriaGroup: React.FC<CategoriaGroupProps> = ({
 export const MotivosPage: React.FC = () => {
   const [motivos, setMotivos] = useState<Motivo[]>([]);
   const [categorias, setCategorias] = useState<Categoria[]>([]);
+  const [originalOrder, setOriginalOrder] = useState<Map<string, number>>(new Map());
+  const [hasReorderChanges, setHasReorderChanges] = useState(false);
   const [loadingMotivos, setLoadingMotivos] = useState(true);
   const [loadingCategorias, setLoadingCategorias] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -132,6 +134,7 @@ export const MotivosPage: React.FC = () => {
   const [editando, setEditando] = useState<Motivo | null>(null);
   const [filtroCategoria, setFiltroCategoria] = useState<string>('');
   const [excelDropdownOpen, setExcelDropdownOpen] = useState(false);
+  const [sincronizing, setSincronizando] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const [form, setForm] = useState<CreateMotivoDto>({
@@ -162,6 +165,12 @@ export const MotivosPage: React.FC = () => {
       setLoadingMotivos(true);
       const data = await motivosService.getAll(filtroCategoria || undefined);
       setMotivos(data);
+      
+      // Guardar orden original para detectar cambios
+      const orderMap = new Map<string, number>();
+      data.forEach((m, idx) => orderMap.set(m.id, idx));
+      setOriginalOrder(orderMap);
+      setHasReorderChanges(false);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Error al cargar motivos';
       setError(message);
@@ -310,12 +319,42 @@ export const MotivosPage: React.FC = () => {
 
     const reordered = arrayMove(categoriaMotivos, oldIndex, newIndex);
 
-    // Actualizar órdenes en la base de datos
-    for (let i = 0; i < reordered.length; i++) {
-      await motivosService.update(reordered[i].id, { ...reordered[i], orden: i + 1 });
-    }
+    // Actualizar solo el motivo reordenado en el estado global
+    const reorderedWithNewOrder = reordered.map((m, idx) => ({ ...m, orden: idx + 1 }));
+    const otrosMotivos = motivos.filter((m) => m.categoriaId !== categoriaId);
+    setMotivos([...otrosMotivos, ...reorderedWithNewOrder]);
 
-    fetchMotivos();
+    // Verificar si hay cambios respecto al orden original
+    const hasChanges = reorderedWithNewOrder.some((m) => {
+      const originalIdx = originalOrder.get(m.id);
+      return originalIdx !== m.orden - 1;
+    });
+    setHasReorderChanges(hasChanges);
+  };
+
+  const sincronizarOrden = async () => {
+    try {
+      setSincronizando(true);
+      
+      // Solo actualizar los que cambiaron de posición
+      for (const motivo of motivos) {
+        const originalIdx = originalOrder.get(motivo.id);
+        if (originalIdx !== motivo.orden - 1) {
+          await motivosService.update(motivo.id, { orden: motivo.orden });
+        }
+      }
+
+      // Actualizar el mapa original
+      const newOrderMap = new Map<string, number>();
+      motivos.forEach((m, idx) => newOrderMap.set(m.id, idx));
+      setOriginalOrder(newOrderMap);
+      setHasReorderChanges(false);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Error al sincronizar orden';
+      setError(message);
+    } finally {
+      setSincronizando(false);
+    }
   };
 
   const openEdit = (motivo: Motivo) => {
@@ -416,6 +455,12 @@ export const MotivosPage: React.FC = () => {
           }}>
             + Múltiples
           </Button>
+          
+          {hasReorderChanges && (
+            <Button onClick={sincronizarOrden} disabled={sincronizing}>
+              {sincronizing ? 'Sincronizando...' : '🔄 Sincronizar'}
+            </Button>
+          )}
         </div>
       </div>
 

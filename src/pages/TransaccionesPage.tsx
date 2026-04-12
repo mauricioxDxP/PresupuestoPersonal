@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { transaccionesService, categoriasService, motivosService } from '../services';
+import { transaccionesService, categoriasService, motivosService, archivosService } from '../services';
 import type {
   Transaccion,
   Categoria,
   Motivo,
+  Archivo,
   CreateTransaccionDto,
   FiltrosTransaccion,
   Reportes,
@@ -40,6 +41,26 @@ export const TransaccionesPage: React.FC = () => {
     descripcion: '',
     facturable: false,
   });
+  const [archivos, setArchivos] = useState<File[]>([]);
+  const [archivosExistentes, setArchivosExistentes] = useState<Archivo[]>([]);
+  const [archivosEliminados, setArchivosEliminados] = useState<string[]>([]);
+  const [visorImagen, setVisorImagen] = useState<string | null>(null);
+  const [subiendoArchivos, setSubiendoArchivos] = useState(false);
+
+  // Cleanup previews when modal closes
+  const limpiarFormulario = () => {
+    setForm({
+      motivoId: '',
+      categoriaId: '',
+      monto: 0,
+      fecha: new Date().toISOString().split('T')[0],
+      descripcion: '',
+      facturable: false,
+    });
+    setArchivos([]);
+    setArchivosExistentes([]);
+    setEditando(null);
+  };
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -126,24 +147,75 @@ export const TransaccionesPage: React.FC = () => {
     setPage(1);
   };
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    const archivosValidos = files.filter(f => {
+      const tipo = f.type;
+      return tipo.startsWith('image/') || tipo === 'application/pdf';
+    });
+
+    if (archivosValidos.length !== files.length) {
+      setError('Solo se permiten imágenes (JPG, PNG) y PDFs');
+    }
+
+    setArchivos(prev => [...prev, ...archivosValidos]);
+  };
+
+  const removeArchivo = (index: number) => {
+    setArchivos(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const eliminarArchivoExistente = async (id: string) => {
+    if (!confirm('¿Eliminar este archivo?')) return;
+    try {
+      await archivosService.delete(id);
+      setArchivosEliminados(prev => [...prev, id]);
+      setArchivosExistentes(prev => prev.filter(a => a.id !== id));
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Error al eliminar';
+      setError(message);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      let transaccionId: string;
+
       if (editando) {
         await transaccionesService.update(editando.id, form);
+        transaccionId = editando.id;
+
+        // Eliminar archivos marcados
+        if (archivosEliminados.length > 0) {
+          for (const id of archivosEliminados) {
+            try {
+              await archivosService.delete(id);
+            } catch (error) {
+              console.error(`Error al eliminar ${id}:`, error);
+            }
+          }
+        }
       } else {
-        await transaccionesService.create(form);
+        const nuevaTransaccion = await transaccionesService.create(form);
+        transaccionId = nuevaTransaccion.id;
       }
+
+      // Subir archivos si hay
+      if (archivos.length > 0 && transaccionId) {
+        setSubiendoArchivos(true);
+        try {
+          await archivosService.uploadMultiple(archivos, transaccionId);
+        } catch (error) {
+          console.error('Error al subir archivos:', error);
+          // No fellamos la transaccinn por error de archivos
+        } finally {
+          setSubiendoArchivos(false);
+        }
+      }
+
       setModalOpen(false);
-      setEditando(null);
-      setForm({
-        motivoId: '',
-        categoriaId: '',
-        monto: 0,
-        fecha: new Date().toISOString().split('T')[0],
-        descripcion: '',
-        facturable: false,
-      });
+      limpiarFormulario();
       fetchTransacciones();
       fetchReportes();
     } catch (err: unknown) {
@@ -269,6 +341,8 @@ export const TransaccionesPage: React.FC = () => {
       descripcion: trans.descripcion || '',
       facturable: trans.facturable,
     });
+    setArchivos([]);
+    setArchivosExistentes(trans.archivos || []);
     setModalOpen(true);
   };
 
@@ -376,6 +450,8 @@ export const TransaccionesPage: React.FC = () => {
                 descripcion: '',
                 facturable: false,
               });
+              setArchivos([]);
+              setArchivosExistentes([]);
               setModalOpen(true);
             }}
           >
@@ -634,14 +710,153 @@ export const TransaccionesPage: React.FC = () => {
               Facturable
             </label>
           </div>
+
+          {/* Archivos existentes (solo en edición) */}
+          {editando && archivosExistentes.length > 0 && (
+            <div className="mb-4">
+              <label className="block text-sm font-medium mb-2" style={{ color: 'var(--color-text)' }}>
+                Archivos adjuntos
+              </label>
+              <div className="flex flex-wrap gap-2">
+                {archivosExistentes.map((archivo) => (
+                  archivo.tipo === 'imagen' ? (
+                    <div key={archivo.id} className="relative flex items-start gap-1">
+                      <img
+                        src={archivo.url}
+                        alt={archivo.nombre}
+                        className="w-16 h-16 rounded object-cover cursor-pointer border"
+                        style={{ borderColor: 'var(--color-border)' }}
+                        onClick={() => setVisorImagen(archivo.url)}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => eliminarArchivoExistente(archivo.id)}
+                        className="w-5 h-5 flex-shrink-0 flex items-center justify-center bg-red-500 text-white rounded-full text-xs"
+                        aria-label="Eliminar"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ) : (
+                    <div key={archivo.id} className="relative flex items-start gap-1">
+                      <a
+                        href={archivo.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-1 px-2 py-1 rounded border text-sm"
+                        style={{ borderColor: 'var(--color-border)' }}
+                      >
+                        <span style={{ color: 'var(--color-text)' }}>📄 {archivo.nombre}</span>
+                      </a>
+                      <button
+                        type="button"
+                        onClick={() => eliminarArchivoExistente(archivo.id)}
+                        className="w-5 h-5 flex-shrink-0 flex items-center justify-center bg-red-500 text-white rounded-full text-xs"
+                        aria-label="Eliminar"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  )
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Upload de archivos */}
+          <div className="mb-4">
+            <label className="block text-sm font-medium mb-2" style={{ color: 'var(--color-text)' }}>
+              Archivos adjuntos (imágenes o PDF)
+            </label>
+            <label
+              className="flex flex-col items-center justify-center w-full h-16 border-2 border-dashed rounded cursor-pointer transition-colors"
+              style={{ 
+                borderColor: 'var(--color-border)',
+                backgroundColor: 'var(--color-bg-secondary)'
+              }}
+            >
+              <div className="flex flex-col items-center">
+                <span className="text-sm" style={{ color: 'var(--color-text-muted)' }}>
+                  + Agregar archivos
+                </span>
+              </div>
+              <input
+                type="file"
+                accept="image/*,.pdf"
+                multiple
+                onChange={handleFileChange}
+                className="hidden"
+              />
+            </label>
+
+            {/* Lista de archivos seleccionados */}
+            {archivos.length > 0 && (
+              <div className="flex flex-wrap gap-2 mt-3">
+                {archivos.map((file, index) => (
+                  file.type.startsWith('image/') ? (
+                    <div key={index} className="relative w-16 h-16 rounded overflow-hidden border" style={{ borderColor: 'var(--color-border)' }}>
+                      <img
+                        src={URL.createObjectURL(file)}
+                        alt="preview"
+                        className="w-full h-full object-cover"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => removeArchivo(index)}
+                        className="absolute top-0 right-0 bg-red-500 text-white w-4 h-4 flex items-center justify-center text-xs"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ) : (
+                    <div key={index} className="flex items-center gap-1 px-2 py-1 rounded border text-sm" style={{ borderColor: 'var(--color-border)' }}>
+                      <span style={{ color: 'var(--color-text)' }}>📄 {file.name}</span>
+                      <button
+                        type="button"
+                        onClick={() => removeArchivo(index)}
+                        className="text-red-500"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  )
+                ))}
+              </div>
+            )}
+          </div>
+
           <div className="flex gap-2 mt-4">
-            <Button type="submit">{editando ? 'Actualizar' : 'Crear'}</Button>
+            <Button type="submit" disabled={subiendoArchivos}>
+              {editando ? 'Actualizar' : 'Crear'}
+              {subiendoArchivos && ' 📎'}
+            </Button>
             <Button variant="secondary" type="button" onClick={() => setModalOpen(false)}>
               Cancelar
             </Button>
           </div>
         </form>
       </Modal>
+
+      {/* Visor de imagen */}
+      {visorImagen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80"
+          onClick={() => setVisorImagen(null)}
+        >
+          <button
+            className="absolute top-4 right-4 w-10 h-10 flex items-center justify-center rounded-full bg-white/20 text-white text-2xl"
+            onClick={() => setVisorImagen(null)}
+          >
+            ×
+          </button>
+          <img
+            src={visorImagen}
+            alt="Vista previa"
+            className="max-w-[90vw] max-h-[90vh] rounded"
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+      )}
     </div>
   );
 };
