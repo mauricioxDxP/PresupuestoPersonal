@@ -841,7 +841,6 @@ export const TransaccionesPage: React.FC = () => {
       {visorImagen && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/80"
-          onClick={() => setVisorImagen(null)}
         >
           <button
             className="absolute top-4 right-4 w-10 h-10 flex items-center justify-center rounded-full bg-white/20 text-white text-2xl"
@@ -853,7 +852,6 @@ export const TransaccionesPage: React.FC = () => {
             src={visorImagen}
             alt="Vista previa"
             className="max-w-[90vw] max-h-[90vh] rounded"
-            onClick={(e) => e.stopPropagation()}
           />
         </div>
       )}

@@ -151,7 +151,7 @@ export const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children }
     <div
       className="fixed inset-0 z-50 sm:flex sm:items-center sm:justify-center"
       style={{ backgroundColor: 'var(--color-modal-overlay)' }}
-      onClick={onClose}
+      onClick={(e) => e.stopPropagation()}
     >
       {/* Mobile: full screen sheet that slides up */}
       <div
