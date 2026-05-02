@@ -46,8 +46,12 @@ self.addEventListener('fetch', (event) => {
     }
     
     event.respondWith(
-      fetch(event.request)
+      fetch(event.request, {
+        // Timeout rápido para no dejar la UI colgada
+        signal: AbortSignal.timeout(5000),
+      })
         .then((response) => {
+          // No cachear respuestas de error
           if (response.ok) {
             const responseClone = response.clone();
             caches.open(CACHE_NAME).then((cache) => {
@@ -57,9 +61,10 @@ self.addEventListener('fetch', (event) => {
           return response;
         })
         .catch(() => {
+          // Si falla la red, devolver error en vez de缓存
           return caches.match(event.request).then((cached) => {
-            if (cached) return cached;
-            return new Response(JSON.stringify({ error: 'Network error' }), {
+            if (cached && !cached.ok) return cached;
+            return new Response(JSON.stringify({ error: 'Network error, please retry' }), {
               status: 503,
               headers: { 'Content-Type': 'application/json' },
             });

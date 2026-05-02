@@ -134,7 +134,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const refreshPermisos = useCallback(async () => {
+  const refreshPermisos = useCallback(async (retryCount = 0) => {
     try {
       const response = await api.get('/users/me/permisos');
       const permisos = response.data;
@@ -170,8 +170,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
     } catch (error) {
       console.error('Error loading permisos:', error);
+      // Reintentar hasta 2 veces si hay 503
+      if (retryCount < 2) {
+        await new Promise(r => setTimeout(r, 1000));
+        return refreshPermisos(retryCount + 1);
+      }
     }
-  }, [state.selectedCasaId]);
+  }, []);
 
   const setSelectedCasaId = useCallback((casaId: string) => {
     console.log('[Auth] setSelectedCasaId called with:', casaId);
