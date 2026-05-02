@@ -1,8 +1,12 @@
 import { lazy, Suspense } from 'react';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { ThemeProvider } from './context/ThemeContext';
+import { AuthProvider, useAuth } from './context/AuthContext';
 import { Layout } from './components/Layout';
 import { Loading } from './components/UI';
+import { LoginPage } from './pages/LoginPage';
+import { RegisterPage } from './pages/RegisterPage';
+import { RegisterSuccessPage } from './pages/RegisterSuccessPage';
 
 // Lazy loading de páginas
 const DashboardPage = lazy(() => import('./pages/DashboardPage').then(m => ({ default: m.DashboardPage })));
@@ -11,24 +15,77 @@ const MotivosPage = lazy(() => import('./pages/MotivosPage').then(m => ({ defaul
 const TransaccionesPage = lazy(() => import('./pages/TransaccionesPage').then(m => ({ default: m.TransaccionesPage })));
 const ConfiguracionPage = lazy(() => import('./pages/ConfiguracionPage').then(m => ({ default: m.ConfiguracionPage })));
 const ReportesPage = lazy(() => import('./pages/ReportesPage').then(m => ({ default: m.ReportesPage })));
+const UsersPage = lazy(() => import('./pages/UsersPage').then(m => ({ default: m.UsersPage })));
+const PermissionsPage = lazy(() => import('./pages/PermissionsPage').then(m => ({ default: m.PermissionsPage })));
+const CasasPage = lazy(() => import('./pages/CasasPage').then(m => ({ default: m.CasasPage })));
+
+// Protected Route wrapper
+function ProtectedRoute({ children }: { children: React.ReactNode }) {
+  const { isAuthenticated, isLoading } = useAuth();
+  
+  if (isLoading) {
+    return <Loading />;
+  }
+  
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+  
+  return <>{children}</>;
+}
+
+// Redirect to /casas for admin, / for regular users
+function RootRedirect() {
+  const { user } = useAuth();
+  if (user?.rol === 'ADMIN') {
+    return <Navigate to="/casas" replace />;
+  }
+  return <Navigate to="/dashboard" replace />;
+}
+
+function AppContent() {
+  const { selectedCasaId } = useAuth();
+  
+  return (
+    <BrowserRouter>
+      <Routes>
+        {/* Public routes */}
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/register" element={<RegisterPage />} />
+        <Route path="/register-success" element={<RegisterSuccessPage />} />
+        
+        {/* Protected routes - key forces remount when casa changes */}
+        <Route path="*" element={
+          <ProtectedRoute>
+            <Layout>
+              <Suspense fallback={<Loading />}>
+                <Routes key={selectedCasaId || 'default'}>
+                  <Route path="/" element={<RootRedirect />} />
+                  <Route path="/dashboard" element={<DashboardPage />} />
+                  <Route path="/categorias" element={<CategoriasPage />} />
+                  <Route path="/motivos" element={<MotivosPage />} />
+                  <Route path="/transacciones" element={<TransaccionesPage />} />
+                  <Route path="/reportes" element={<ReportesPage />} />
+                  <Route path="/configuracion" element={<ConfiguracionPage />} />
+                  <Route path="/usuarios" element={<UsersPage />} />
+                  <Route path="/permisos" element={<PermissionsPage />} />
+                  <Route path="/casas" element={<CasasPage />} />
+                </Routes>
+              </Suspense>
+            </Layout>
+          </ProtectedRoute>
+        } />
+      </Routes>
+    </BrowserRouter>
+  );
+}
 
 function App() {
   return (
     <ThemeProvider>
-      <BrowserRouter>
-        <Layout>
-          <Suspense fallback={<Loading />}>
-            <Routes>
-              <Route path="/" element={<DashboardPage />} />
-              <Route path="/categorias" element={<CategoriasPage />} />
-              <Route path="/motivos" element={<MotivosPage />} />
-              <Route path="/transacciones" element={<TransaccionesPage />} />
-              <Route path="/reportes" element={<ReportesPage />} />
-              <Route path="/configuracion" element={<ConfiguracionPage />} />
-            </Routes>
-          </Suspense>
-        </Layout>
-      </BrowserRouter>
+      <AuthProvider>
+        <AppContent />
+      </AuthProvider>
     </ThemeProvider>
   );
 }

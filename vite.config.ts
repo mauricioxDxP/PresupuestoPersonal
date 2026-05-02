@@ -8,21 +8,24 @@ export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(),'')
   console.log(env)
 
+  const isDev = mode === 'development';
 
   return {
 
     plugins: [react()],
 
     server: {
-
-      https: {
-        key: fs.readFileSync('./localhost-key.pem'),
-        cert: fs.readFileSync('./localhost.pem'),
-      },
+      // Use HTTP in dev, HTTPS only in production
+      ...(isDev ? {} : {
+        https: {
+          key: fs.readFileSync('./localhost-key.pem'),
+          cert: fs.readFileSync('./localhost.pem'),
+        },
+      }),
 
       host: '0.0.0.0',
 
-      allowedHosts: ['desktop-mauricio'],
+      allowedHosts: isDev ? ['.mauricioxdxp.site', 'desktop-mauricio'] : ['.mauricioxdxp.site'],
 
       port: Number(env.PORT) || 5173,
 

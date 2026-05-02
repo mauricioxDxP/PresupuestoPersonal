@@ -2,8 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { transaccionesService } from '../services';
 import { generateMonthlyReport, type ReporteMensualData } from '../utils/excel';
 import { Button, Select, Card, Loading, ErrorMessage } from '../components/UI';
+import { useAuth } from '../context/AuthContext';
 
 export const ReportesPage: React.FC = () => {
+  const { selectedCasaId } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [generando, setGenerando] = useState(false);
@@ -76,11 +78,11 @@ export const ReportesPage: React.FC = () => {
     }
   };
 
-  // Cargar preview al cambiar mes/año
+  // Cargar preview al cambiar mes/año o casa
   useEffect(() => {
     cargarPreview();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [anio, mes]);
+  }, [anio, mes, selectedCasaId]);
 
   // Calcular totales del preview
   const totalTransacciones = reportePreview?.transacciones.length || 0;

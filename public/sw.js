@@ -37,8 +37,14 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
 
-  // API requests: NetworkFirst
+  // API requests: NetworkFirst (GET only), bypass for other methods
   if (url.pathname.startsWith('/api/')) {
+    // Don't cache non-GET requests
+    if (event.request.method !== 'GET') {
+      event.respondWith(fetch(event.request));
+      return;
+    }
+    
     event.respondWith(
       fetch(event.request)
         .then((response) => {
@@ -51,7 +57,13 @@ self.addEventListener('fetch', (event) => {
           return response;
         })
         .catch(() => {
-          return caches.match(event.request);
+          return caches.match(event.request).then((cached) => {
+            if (cached) return cached;
+            return new Response(JSON.stringify({ error: 'Network error' }), {
+              status: 503,
+              headers: { 'Content-Type': 'application/json' },
+            });
+          });
         })
     );
     return;
@@ -106,7 +118,13 @@ self.addEventListener('fetch', (event) => {
         return response;
       })
       .catch(() => {
-        return caches.match(event.request);
+        return caches.match(event.request).then((cached) => {
+          if (cached) return cached;
+          return new Response(JSON.stringify({ error: 'Network error' }), {
+            status: 503,
+            headers: { 'Content-Type': 'application/json' },
+          });
+        });
       })
   );
 });

@@ -1,13 +1,11 @@
 import axios from 'axios';
 
 // Usa la variable de entorno si existe, sino detecta el hostname actual
-// Esto funciona tanto en localhost como en la red local
 const getBaseUrl = () => {
   if (import.meta.env.VITE_API_URL) return import.meta.env.VITE_API_URL + '/api';
   
-  // En desarrollo o red local: usa el mismo host que la página
-  const hostname = window.location.hostname;
-  const port = import.meta.env.DEV ? '3001' : '3001';
+  const hostname = 'localhost';
+  const port = '3001';
   return `http://${hostname}:${port}/api`;
 };
 
@@ -17,5 +15,14 @@ const api = axios.create({
     'Content-Type': 'application/json',
   },
 });
+
+// Helper para actualizar el header de casa desde AuthContext
+export function setCasaHeader(casaId: string | null) {
+  if (casaId) {
+    api.defaults.headers.common['x-casa-id'] = casaId;
+  } else {
+    delete api.defaults.headers.common['x-casa-id'];
+  }
+}
 
 export default api;
