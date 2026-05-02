@@ -159,6 +159,12 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
             }}
           >
             <div className="px-2 py-3 space-y-1">
+              {isAuthenticated && !isAdmin && (
+                <div className="px-4 py-3 border-b" style={{ borderColor: 'var(--color-border)' }}>
+                  <div className="text-xs mb-2" style={{ color: 'var(--color-text-muted)' }}>Casa seleccionada</div>
+                  <CasaSelector />
+                </div>
+              )}
               {navLinks.map((link) => (
                 <NavLink
                   key={link.to}
@@ -170,6 +176,13 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
                   {link.label}
                 </NavLink>
               ))}
+              <button
+                onClick={() => { setMenuOpen(false); handleLogout(); }}
+                className="w-full text-left block px-4 py-3 rounded transition-all text-base"
+                style={{ color: 'var(--color-error, #dc2626)' }}
+              >
+                🚪 Cerrar sesión
+              </button>
             </div>
           </div>
         )}
