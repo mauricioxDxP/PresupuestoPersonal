@@ -242,6 +242,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem(AUTH_TOKEN_KEY);
     localStorage.removeItem(SELECTED_CASA_KEY);
     delete api.defaults.headers.common['Authorization'];
+    clearCache();
     setState({
       user: null,
       selectedCasaId: null,
@@ -249,6 +250,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       isAuthenticated: false,
       isLoading: false,
     });
+    // Force full reload to reset all module-level state (cache, services, etc.)
+    window.location.href = '/login';
   };
 
   const hasPermission = (
