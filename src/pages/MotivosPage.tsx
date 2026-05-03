@@ -84,6 +84,7 @@ interface CategoriaGroupProps {
   motivos: Motivo[];
   onEdit: (m: Motivo) => void;
   onDelete: (id: string) => void;
+  onDragEnd: (event: DragEndEvent) => void;
   showActions?: boolean;
 }
 
@@ -130,8 +131,8 @@ const CategoriaGroup: React.FC<CategoriaGroupProps> = ({
 };
 
 export const MotivosPage: React.FC = () => {
-  const { usuario } = useAuth();
-  const isMaestro = usuario?.rol === Rol.MAESTRO_CASA;
+  const { user } = useAuth();
+  const isMaestro = user?.rol === Rol.MAESTRO_CASA;
   const [motivos, setMotivos] = useState<Motivo[]>([]);
   const [categorias, setCategorias] = useState<Categoria[]>([]);
   const [originalOrder, setOriginalOrder] = useState<Map<string, number>>(new Map());

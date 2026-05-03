@@ -151,11 +151,11 @@ export function UsersPage() {
     setPermisosCategoria(prev => ({
       ...prev,
       [catId]: {
+        ...(prev[catId] || {}),
         puedeCrear: false,
         puedeEditar: false,
         puedeEliminar: false,
         puedeVerTransaccionesOtros: false,
-        ...(prev[catId] || {}),
         [tipo]: !prev[catId]?.[tipo],
       },
     }));
@@ -165,10 +165,10 @@ export function UsersPage() {
     setPermisosMotivo(prev => ({
       ...prev,
       [motivoId]: {
+        ...(prev[motivoId] || {}),
         puedeCrear: false,
         puedeEditar: false,
         puedeEliminar: false,
-        ...(prev[motivoId] || {}),
         [tipo]: !prev[motivoId]?.[tipo],
       },
     }));
