@@ -56,7 +56,6 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
           ...(user?.rol === Rol.MAESTRO_CASA
             ? [
                 { to: '/usuarios', label: '👥 Usuarios' },
-                { to: '/permisos', label: '🔐 Permisos' },
               ]
             : []),
         ]

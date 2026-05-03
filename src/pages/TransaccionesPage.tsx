@@ -9,7 +9,7 @@ import type {
   FiltrosTransaccion,
   Reportes,
 } from '../types';
-import { Button, Input, Select, Card, Modal, Loading, ErrorMessage } from '../components/UI';
+import { Button, Input, Select, Card, FormModal, Loading, ErrorMessage } from '../components/UI';
 import { exportToExcel, importTransaccionesFromExcel, downloadTemplate } from '../utils/excel';
 
 export const TransaccionesPage: React.FC = () => {
@@ -653,7 +653,7 @@ export const TransaccionesPage: React.FC = () => {
         <p className="text-center py-8" style={{ color: 'var(--color-text-muted)' }}>No hay transacciones. ¡Registra una!</p>
       )}
 
-      <Modal
+      <FormModal
         isOpen={modalOpen}
         onClose={() => setModalOpen(false)}
         title={editando ? 'Editar Transacción' : 'Nueva Transacción'}
@@ -835,7 +835,7 @@ export const TransaccionesPage: React.FC = () => {
             </Button>
           </div>
         </form>
-      </Modal>
+      </FormModal>
 
       {/* Visor de imagen */}
       {visorImagen && (

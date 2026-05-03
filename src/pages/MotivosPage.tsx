@@ -17,7 +17,7 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import { motivosService, categoriasService } from '../services';
 import type { Motivo, Categoria, CreateMotivoDto } from '../types';
-import { Button, Input, Select, Card, Modal, Loading, ErrorMessage } from '../components/UI';
+import { Button, Input, Select, Card, FormModal, Loading, ErrorMessage } from '../components/UI';
 import { exportToExcel, importFromExcel, downloadTemplate } from '../utils/excel';
 import type { DragEndEvent } from '@dnd-kit/core';
 
@@ -496,7 +496,7 @@ export const MotivosPage: React.FC = () => {
         <p className="text-center py-8" style={{ color: 'var(--color-text-muted)' }}>No hay motivos. ¡Crea uno!</p>
       )}
 
-      <Modal
+      <FormModal
         isOpen={modalOpen}
         onClose={() => setModalOpen(false)}
         title={editando ? 'Editar Motivo' : 'Nuevo Motivo'}
@@ -541,9 +541,9 @@ export const MotivosPage: React.FC = () => {
             </Button>
           </div>
         </form>
-      </Modal>
+      </FormModal>
 
-      <Modal
+      <FormModal
         isOpen={modalMultipleOpen}
         onClose={() => setModalMultipleOpen(false)}
         title="Añadir Múltiples Motivos"
@@ -593,7 +593,7 @@ export const MotivosPage: React.FC = () => {
             </Button>
           </div>
         </form>
-      </Modal>
+      </FormModal>
     </div>
   );
 };

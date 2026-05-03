@@ -16,7 +16,6 @@ const TransaccionesPage = lazy(() => import('./pages/TransaccionesPage').then(m 
 const ConfiguracionPage = lazy(() => import('./pages/ConfiguracionPage').then(m => ({ default: m.ConfiguracionPage })));
 const ReportesPage = lazy(() => import('./pages/ReportesPage').then(m => ({ default: m.ReportesPage })));
 const UsersPage = lazy(() => import('./pages/UsersPage').then(m => ({ default: m.UsersPage })));
-const PermissionsPage = lazy(() => import('./pages/PermissionsPage').then(m => ({ default: m.PermissionsPage })));
 const CasasPage = lazy(() => import('./pages/CasasPage').then(m => ({ default: m.CasasPage })));
 
 // Protected Route wrapper
@@ -68,7 +67,6 @@ function AppContent() {
                   <Route path="/reportes" element={<ReportesPage />} />
                   <Route path="/configuracion" element={<ConfiguracionPage />} />
                   <Route path="/usuarios" element={<UsersPage />} />
-                  <Route path="/permisos" element={<PermissionsPage />} />
                   <Route path="/casas" element={<CasasPage />} />
                 </Routes>
               </Suspense>

@@ -17,7 +17,7 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import { categoriasService } from '../services';
 import type { Categoria, CreateCategoriaDto } from '../types';
-import { Button, Input, Select, Modal, Loading, ErrorMessage } from '../components/UI';
+import { Button, Input, Select, FormModal, Loading, ErrorMessage } from '../components/UI';
 import { exportToExcel, importFromExcel, downloadTemplate } from '../utils/excel';
 import type { DragEndEvent } from '@dnd-kit/core';
 
@@ -407,7 +407,7 @@ export const CategoriasPage: React.FC = () => {
       )}
 
       {/* Modal Individual */}
-      <Modal
+      <FormModal
         isOpen={modalOpen}
         onClose={() => setModalOpen(false)}
         title={editando ? 'Editar Categoría' : 'Nueva Categoría'}
@@ -435,10 +435,10 @@ export const CategoriasPage: React.FC = () => {
             </Button>
           </div>
         </form>
-      </Modal>
+      </FormModal>
 
       {/* Modal Múltiples */}
-      <Modal
+      <FormModal
         isOpen={modalMultipleOpen}
         onClose={() => setModalMultipleOpen(false)}
         title="Añadir Múltiples Categorías"
@@ -477,7 +477,7 @@ export const CategoriasPage: React.FC = () => {
             </Button>
           </div>
         </form>
-      </Modal>
+      </FormModal>
     </div>
   );
 };

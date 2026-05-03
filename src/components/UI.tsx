@@ -137,14 +137,14 @@ export const Card: React.FC<CardProps> = ({ children, title, className = '' }) =
   );
 };
 
-interface ModalProps {
+interface FormModalProps {
   isOpen: boolean;
   onClose: () => void;
   title: string;
   children: React.ReactNode;
 }
 
-export const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children }) => {
+export const FormModal: React.FC<FormModalProps> = ({ isOpen, onClose, title, children }) => {
   if (!isOpen) return null;
 
   return (
