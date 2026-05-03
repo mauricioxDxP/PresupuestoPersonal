@@ -12,6 +12,23 @@ export interface Archivo {
   updatedAt: string;
 }
 
+export interface UsuarioMini {
+  id: string;
+  nombre: string;
+  email: string;
+}
+
+export interface TransaccionHistorial {
+  id: string;
+  transaccionId: string;
+  accion: 'CREAR' | 'MODIFICAR' | 'ELIMINAR';
+  usuarioId: string;
+  fecha: string;
+  datosAnteriores?: Record<string, any>;
+  datosNuevos?: Record<string, any>;
+  usuario?: UsuarioMini;
+}
+
 export interface Transaccion {
   id: string;
   motivoId: string;
@@ -26,6 +43,8 @@ export interface Transaccion {
   motivo?: Motivo;
   categoria?: Categoria;
   archivos?: Archivo[];
+  usuario?: UsuarioMini;
+  usuarioId: string;
 }
 
 export interface CreateTransaccionDto {

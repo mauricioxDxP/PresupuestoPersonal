@@ -15,6 +15,7 @@ interface User {
     puedeCrear: boolean;
     puedeEditar: boolean;
     puedeEliminar: boolean;
+    puedeVerTransaccionesOtros: boolean;
   }>;
   motivoPermisos?: Array<{
     id: string;
@@ -53,7 +54,7 @@ export function UsersPage() {
   const [loadingPermisos, setLoadingPermisos] = useState(false);
 
   // Permisos editing state
-  const [permisosCategoria, setPermisosCategoria] = useState<{[catId: string]: {puedeCrear: boolean; puedeEditar: boolean; puedeEliminar: boolean}}>({});
+  const [permisosCategoria, setPermisosCategoria] = useState<{[catId: string]: {puedeCrear: boolean; puedeEditar: boolean; puedeEliminar: boolean; puedeVerTransaccionesOtros: boolean}}>({});
   const [permisosMotivo, setPermisosMotivo] = useState<{[motivoId: string]: {puedeCrear: boolean; puedeEditar: boolean; puedeEliminar: boolean}}>({});
   const [successMsg, setSuccessMsg] = useState('');
 
@@ -121,12 +122,13 @@ export function UsersPage() {
     setSuccessMsg('');
 
     // Load current permisos into state
-    const catPerm: {[key: string]: {puedeCrear: boolean; puedeEditar: boolean; puedeEliminar: boolean}} = {};
+    const catPerm: {[key: string]: {puedeCrear: boolean; puedeEditar: boolean; puedeEliminar: boolean; puedeVerTransaccionesOtros: boolean}} = {};
     (u.categoriaPermisos || []).forEach(cp => {
       catPerm[cp.categoria.id] = {
         puedeCrear: cp.puedeCrear,
         puedeEditar: cp.puedeEditar,
         puedeEliminar: cp.puedeEliminar,
+        puedeVerTransaccionesOtros: cp.puedeVerTransaccionesOtros,
       };
     });
     setPermisosCategoria(catPerm);
@@ -145,13 +147,14 @@ export function UsersPage() {
     setLoadingPermisos(false);
   };
 
-  const togglePermisoCategoria = (catId: string, tipo: 'puedeCrear' | 'puedeEditar' | 'puedeEliminar') => {
+  const togglePermisoCategoria = (catId: string, tipo: 'puedeCrear' | 'puedeEditar' | 'puedeEliminar' | 'puedeVerTransaccionesOtros') => {
     setPermisosCategoria(prev => ({
       ...prev,
       [catId]: {
         puedeCrear: false,
         puedeEditar: false,
         puedeEliminar: false,
+        puedeVerTransaccionesOtros: false,
         ...(prev[catId] || {}),
         [tipo]: !prev[catId]?.[tipo],
       },
@@ -428,9 +431,9 @@ export function UsersPage() {
                     <button
                       type="button"
                       onClick={() => {
-                        const newPermisos: {[key: string]: {puedeCrear: boolean; puedeEditar: boolean; puedeEliminar: boolean}} = {};
+                        const newPermisos: {[key: string]: {puedeCrear: boolean; puedeEditar: boolean; puedeEliminar: boolean; puedeVerTransaccionesOtros: boolean}} = {};
                         categorias.forEach(cat => {
-                          newPermisos[cat.id] = { puedeCrear: true, puedeEditar: true, puedeEliminar: true };
+                          newPermisos[cat.id] = { puedeCrear: true, puedeEditar: true, puedeEliminar: true, puedeVerTransaccionesOtros: true };
                         });
                         setPermisosCategoria(newPermisos);
                       }}
@@ -457,11 +460,12 @@ export function UsersPage() {
                         <th className="text-center p-3 font-medium w-20" style={{ color: 'var(--color-text-muted)' }}>Crear</th>
                         <th className="text-center p-3 font-medium w-20" style={{ color: 'var(--color-text-muted)' }}>Editar</th>
                         <th className="text-center p-3 font-medium w-20" style={{ color: 'var(--color-text-muted)' }}>Eliminar</th>
+                        <th className="text-center p-3 font-medium w-20" style={{ color: 'var(--color-text-muted)' }}>Ver Otros</th>
                       </tr>
                     </thead>
                     <tbody>
                       {categorias.map(cat => {
-                        const p = permisosCategoria[cat.id] || { puedeCrear: false, puedeEditar: false, puedeEliminar: false };
+                        const p = permisosCategoria[cat.id] || { puedeCrear: false, puedeEditar: false, puedeEliminar: false, puedeVerTransaccionesOtros: false };
                         return (
                           <tr 
                             key={cat.id}
@@ -490,6 +494,14 @@ export function UsersPage() {
                                 type="checkbox"
                                 checked={p.puedeEliminar}
                                 onChange={() => togglePermisoCategoria(cat.id, 'puedeEliminar')}
+                                className="w-4 h-4"
+                              />
+                            </td>
+                            <td className="p-3 text-center">
+                              <input
+                                type="checkbox"
+                                checked={p.puedeVerTransaccionesOtros}
+                                onChange={() => togglePermisoCategoria(cat.id, 'puedeVerTransaccionesOtros')}
                                 className="w-4 h-4"
                               />
                             </td>

@@ -15,6 +15,7 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import { useAuth, Rol } from '../context/AuthContext';
 import { motivosService, categoriasService } from '../services';
 import type { Motivo, Categoria, CreateMotivoDto } from '../types';
 import { Button, Input, Select, Card, FormModal, Loading, ErrorMessage } from '../components/UI';
@@ -26,9 +27,10 @@ interface SortableMotivoProps {
   motivo: Motivo;
   onEdit: (m: Motivo) => void;
   onDelete: (id: string) => void;
+  showActions?: boolean;
 }
 
-const SortableMotivo: React.FC<SortableMotivoProps> = ({ motivo, onEdit, onDelete }) => {
+const SortableMotivo: React.FC<SortableMotivoProps> = ({ motivo, onEdit, onDelete, showActions = true }) => {
   const {
     attributes,
     listeners,
@@ -51,23 +53,27 @@ const SortableMotivo: React.FC<SortableMotivoProps> = ({ motivo, onEdit, onDelet
       className="flex items-center justify-between border rounded px-3 py-2.5 mb-2 hover:shadow-md transition-shadow active:shadow-lg"
     >
       <div className="flex items-center gap-2 sm:gap-3 select-none min-w-0 flex-1">
-        <span
-          className="text-lg shrink-0 cursor-grab"
-          style={{ color: 'var(--color-text-muted)', touchAction: 'none' }}
-          {...attributes}
-          {...listeners}
-        >⋮⋮</span>
+        {showActions && (
+          <span
+            className="text-lg shrink-0 cursor-grab"
+            style={{ color: 'var(--color-text-muted)', touchAction: 'none' }}
+            {...attributes}
+            {...listeners}
+          >⋮⋮</span>
+        )}
         <span className="font-medium text-sm sm:text-base truncate" style={{ color: 'var(--color-text)' }}>{motivo.nombre}</span>
         <span className="text-xs shrink-0" style={{ color: 'var(--color-text-muted)' }}>#{motivo.orden}</span>
       </div>
-      <div className="flex gap-2 shrink-0 ml-2">
-        <button onClick={() => onEdit(motivo)} className="text-blue-600 hover:text-blue-800 text-sm min-w-[32px] text-center" style={{ color: 'var(--color-primary)' }}>
-          ✎
-        </button>
-        <button onClick={() => onDelete(motivo.id)} className="text-sm min-w-[32px] text-center" style={{ color: 'var(--color-danger)' }}>
-          ✕
-        </button>
-      </div>
+      {showActions && (
+        <div className="flex gap-2 shrink-0 ml-2">
+          <button onClick={() => onEdit(motivo)} className="text-blue-600 hover:text-blue-800 text-sm min-w-[32px] text-center" style={{ color: 'var(--color-primary)' }}>
+            ✎
+          </button>
+          <button onClick={() => onDelete(motivo.id)} className="text-sm min-w-[32px] text-center" style={{ color: 'var(--color-danger)' }}>
+            ✕
+          </button>
+        </div>
+      )}
     </div>
   );
 };
@@ -78,7 +84,7 @@ interface CategoriaGroupProps {
   motivos: Motivo[];
   onEdit: (m: Motivo) => void;
   onDelete: (id: string) => void;
-  onDragEnd: (event: DragEndEvent) => void;
+  showActions?: boolean;
 }
 
 const CategoriaGroup: React.FC<CategoriaGroupProps> = ({
@@ -87,6 +93,7 @@ const CategoriaGroup: React.FC<CategoriaGroupProps> = ({
   onEdit,
   onDelete,
   onDragEnd,
+  showActions = true,
 }) => {
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -113,6 +120,7 @@ const CategoriaGroup: React.FC<CategoriaGroupProps> = ({
               motivo={motivo}
               onEdit={onEdit}
               onDelete={onDelete}
+              showActions={showActions}
             />
           ))}
         </SortableContext>
@@ -122,6 +130,8 @@ const CategoriaGroup: React.FC<CategoriaGroupProps> = ({
 };
 
 export const MotivosPage: React.FC = () => {
+  const { usuario } = useAuth();
+  const isMaestro = usuario?.rol === Rol.MAESTRO_CASA;
   const [motivos, setMotivos] = useState<Motivo[]>([]);
   const [categorias, setCategorias] = useState<Categoria[]>([]);
   const [originalOrder, setOriginalOrder] = useState<Map<string, number>>(new Map());
@@ -442,19 +452,23 @@ export const MotivosPage: React.FC = () => {
             )}
           </div>
 
-          <Button onClick={() => {
-            setEditando(null);
-            setForm({ nombre: '', categoriaId: '', mostrarSinTransacciones: false, orden: 0 });
-            setModalOpen(true);
-          }}>
-            + Nuevo
-          </Button>
-          <Button onClick={() => {
-            setMultipleForm({ lista: '', categoriaId: '', mostrarSinTransacciones: false });
-            setModalMultipleOpen(true);
-          }}>
-            + Múltiples
-          </Button>
+          {isMaestro && (
+            <>
+              <Button onClick={() => {
+                setEditando(null);
+                setForm({ nombre: '', categoriaId: '', mostrarSinTransacciones: false, orden: 0 });
+                setModalOpen(true);
+              }}>
+                + Nuevo
+              </Button>
+              <Button onClick={() => {
+                setMultipleForm({ lista: '', categoriaId: '', mostrarSinTransacciones: false });
+                setModalMultipleOpen(true);
+              }}>
+                + Múltiples
+              </Button>
+            </>
+          )}
           
           {hasReorderChanges && (
             <Button onClick={sincronizarOrden} disabled={sincronizing}>
@@ -488,6 +502,7 @@ export const MotivosPage: React.FC = () => {
             onEdit={openEdit}
             onDelete={handleDelete}
             onDragEnd={(event) => handleDragEnd(event, categoriaId)}
+            showActions={isMaestro}
           />
         ))}
       </div>

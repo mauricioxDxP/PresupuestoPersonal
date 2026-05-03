@@ -15,6 +15,7 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import { useAuth, Rol } from '../context/AuthContext';
 import { categoriasService } from '../services';
 import type { Categoria, CreateCategoriaDto } from '../types';
 import { Button, Input, Select, FormModal, Loading, ErrorMessage } from '../components/UI';
@@ -26,9 +27,10 @@ interface SortableCategoriaProps {
   categoria: Categoria;
   onEdit: (c: Categoria) => void;
   onDelete: (id: string) => void;
+  showActions?: boolean;
 }
 
-const SortableCategoria: React.FC<SortableCategoriaProps> = ({ categoria, onEdit, onDelete }) => {
+const SortableCategoria: React.FC<SortableCategoriaProps> = ({ categoria, onEdit, onDelete, showActions = true }) => {
   const {
     attributes,
     listeners,
@@ -51,12 +53,14 @@ const SortableCategoria: React.FC<SortableCategoriaProps> = ({ categoria, onEdit
       className="flex items-center justify-between border rounded px-3 py-2.5 mb-2 hover:shadow-md transition-shadow active:shadow-lg"
     >
       <div className="flex items-center gap-2 sm:gap-3 select-none min-w-0 flex-1">
-        <span
-          className="text-lg shrink-0 cursor-grab"
-          style={{ color: 'var(--color-text-muted)', touchAction: 'none' }}
-          {...attributes}
-          {...listeners}
-        >⋮⋮</span>
+        {showActions && (
+          <span
+            className="text-lg shrink-0 cursor-grab"
+            style={{ color: 'var(--color-text-muted)', touchAction: 'none' }}
+            {...attributes}
+            {...listeners}
+          >⋮⋮</span>
+        )}
         <span className="font-medium text-sm sm:text-base truncate" style={{ color: 'var(--color-text)' }}>{categoria.nombre}</span>
         <span
           className={`inline-block px-2 py-0.5 rounded text-xs shrink-0`}
@@ -68,19 +72,24 @@ const SortableCategoria: React.FC<SortableCategoriaProps> = ({ categoria, onEdit
           {categoria.tipo === 'ingreso' ? 'Ingreso' : 'Gasto'}
         </span>
       </div>
-      <div className="flex gap-2 shrink-0 ml-2">
-        <button onClick={() => onEdit(categoria)} className="text-sm min-w-[32px] text-center" style={{ color: 'var(--color-primary)' }}>
-          ✎
-        </button>
-        <button onClick={() => onDelete(categoria.id)} className="text-sm min-w-[32px] text-center" style={{ color: 'var(--color-danger)' }}>
-          ✕
-        </button>
-      </div>
+      {showActions && (
+        <div className="flex gap-2 shrink-0 ml-2">
+          <button onClick={() => onEdit(categoria)} className="text-sm min-w-[32px] text-center" style={{ color: 'var(--color-primary)' }}>
+            ✎
+          </button>
+          <button onClick={() => onDelete(categoria.id)} className="text-sm min-w-[32px] text-center" style={{ color: 'var(--color-danger)' }}>
+            ✕
+          </button>
+        </div>
+      )}
     </div>
   );
 };
 
 export const CategoriasPage: React.FC = () => {
+  const { user } = useAuth();
+  const isMaestro = user?.rol === Rol.MAESTRO_CASA;
+
   const [categorias, setCategorias] = useState<Categoria[]>([]);
   const [originalOrder, setOriginalOrder] = useState<Map<string, number>>(new Map());
   const [hasReorderChanges, setHasReorderChanges] = useState(false);
@@ -305,64 +314,70 @@ export const CategoriasPage: React.FC = () => {
         
         <div className="flex flex-wrap gap-2">
           {/* Dropdown Excel */}
-          <div className="relative" ref={dropdownRef}>
-            <Button onClick={() => setExcelDropdownOpen(!excelDropdownOpen)}>
-              Excel ▼
-            </Button>
-            {excelDropdownOpen && (
-              <div
-                className="absolute right-0 mt-1 w-40 border rounded shadow-lg z-10"
-                style={{ backgroundColor: 'var(--color-dropdown-bg)', borderColor: 'var(--color-border)' }}
-              >
-                <button
-                  onClick={async () => {
-                    await downloadTemplate('categoria');
-                    setExcelDropdownOpen(false);
-                  }}
-                  className="block w-full text-left px-4 py-2 text-sm"
-                  style={{ color: 'var(--color-text)' }}
-                  onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.backgroundColor = 'var(--color-dropdown-hover)')}
-                  onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.backgroundColor = 'transparent')}
+          {isMaestro && (
+            <div className="relative" ref={dropdownRef}>
+              <Button onClick={() => setExcelDropdownOpen(!excelDropdownOpen)}>
+                Excel ▼
+              </Button>
+              {excelDropdownOpen && (
+                <div
+                  className="absolute right-0 mt-1 w-40 border rounded shadow-lg z-10"
+                  style={{ backgroundColor: 'var(--color-dropdown-bg)', borderColor: 'var(--color-border)' }}
                 >
-                  Template
-                </button>
-                <label
-                  className="block w-full text-left px-4 py-2 cursor-pointer text-sm"
-                  style={{ color: 'var(--color-text)' }}
-                  onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.backgroundColor = 'var(--color-dropdown-hover)')}
-                  onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.backgroundColor = 'transparent')}
-                >
-                  Importar
-                  <input type="file" accept=".xlsx,.xls" onChange={handleImport} className="hidden" />
-                </label>
-                <button
-                  onClick={handleExport}
-                  className="block w-full text-left px-4 py-2 text-sm"
-                  style={{ color: 'var(--color-text)' }}
-                  onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.backgroundColor = 'var(--color-dropdown-hover)')}
-                  onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.backgroundColor = 'transparent')}
-                >
-                  Exportar
-                </button>
-              </div>
-            )}
-          </div>
+                  <button
+                    onClick={async () => {
+                      await downloadTemplate('categoria');
+                      setExcelDropdownOpen(false);
+                    }}
+                    className="block w-full text-left px-4 py-2 text-sm"
+                    style={{ color: 'var(--color-text)' }}
+                    onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.backgroundColor = 'var(--color-dropdown-hover)')}
+                    onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.backgroundColor = 'transparent')}
+                  >
+                    Template
+                  </button>
+                  <label
+                    className="block w-full text-left px-4 py-2 cursor-pointer text-sm"
+                    style={{ color: 'var(--color-text)' }}
+                    onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.backgroundColor = 'var(--color-dropdown-hover)')}
+                    onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.backgroundColor = 'transparent')}
+                  >
+                    Importar
+                    <input type="file" accept=".xlsx,.xls" onChange={handleImport} className="hidden" />
+                  </label>
+                  <button
+                    onClick={handleExport}
+                    className="block w-full text-left px-4 py-2 text-sm"
+                    style={{ color: 'var(--color-text)' }}
+                    onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.backgroundColor = 'var(--color-dropdown-hover)')}
+                    onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.backgroundColor = 'transparent')}
+                  >
+                    Exportar
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
 
-          <Button onClick={() => {
-            setEditando(null);
-            setForm({ nombre: '', tipo: 'gasto', orden: 0 });
-            setModalOpen(true);
-          }}>
-            + Nueva
-          </Button>
-          <Button onClick={() => {
-            setMultipleForm({ lista: '', tipo: 'gasto' });
-            setModalMultipleOpen(true);
-          }}>
-            + Múltiples
-          </Button>
+          {isMaestro && (
+            <>
+              <Button onClick={() => {
+                setEditando(null);
+                setForm({ nombre: '', tipo: 'gasto', orden: 0 });
+                setModalOpen(true);
+              }}>
+                + Nueva
+              </Button>
+              <Button onClick={() => {
+                setMultipleForm({ lista: '', tipo: 'gasto' });
+                setModalMultipleOpen(true);
+              }}>
+                + Múltiples
+              </Button>
+            </>
+          )}
           
-          {hasReorderChanges && (
+          {isMaestro && hasReorderChanges && (
             <Button onClick={sincronizarOrden} disabled={sincronizing}>
               {sincronizing ? 'Sincronizando...' : '🔄 Sincronizar'}
             </Button>
@@ -397,6 +412,7 @@ export const CategoriasPage: React.FC = () => {
               categoria={cat}
               onEdit={openEdit}
               onDelete={handleDelete}
+              showActions={isMaestro}
             />
           ))}
         </SortableContext>

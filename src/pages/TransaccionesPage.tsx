@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { transaccionesService, categoriasService, motivosService, archivosService } from '../services';
 import type {
   Transaccion,
+  TransaccionHistorial,
   Categoria,
   Motivo,
   Archivo,
@@ -46,6 +47,10 @@ export const TransaccionesPage: React.FC = () => {
   const [archivosEliminados, setArchivosEliminados] = useState<string[]>([]);
   const [visorImagen, setVisorImagen] = useState<string | null>(null);
   const [subiendoArchivos, setSubiendoArchivos] = useState(false);
+  const [historialModalOpen, setHistorialModalOpen] = useState(false);
+  const [historialTransaccion, setHistorialTransaccion] = useState<Transaccion | null>(null);
+  const [historial, setHistorial] = useState<TransaccionHistorial[]>([]);
+  const [loadingHistorial, setLoadingHistorial] = useState(false);
 
   // Cleanup previews when modal closes
   const limpiarFormulario = () => {
@@ -346,6 +351,20 @@ export const TransaccionesPage: React.FC = () => {
     setModalOpen(true);
   };
 
+  const openHistorial = async (trans: Transaccion) => {
+    setHistorialTransaccion(trans);
+    setHistorialModalOpen(true);
+    setLoadingHistorial(true);
+    try {
+      const data = await transaccionesService.getHistorial(trans.id);
+      setHistorial(data);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error al cargar historial');
+    } finally {
+      setLoadingHistorial(false);
+    }
+  };
+
   const motivosPorCategoria = motivos.filter((m) => m.categoriaId === form.categoriaId);
 
   /**
@@ -549,8 +568,19 @@ export const TransaccionesPage: React.FC = () => {
                 {trans.archivos && trans.archivos.length > 0 && (
                   <p className="text-xs text-blue-500">{trans.archivos.length} archivo(s)</p>
                 )}
+                {trans.usuario && (
+                  <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
+                    Creado por: {trans.usuario.nombre}
+                  </p>
+                )}
               </div>
-              <div className="flex gap-3 shrink-0">
+              <div className="flex gap-2 shrink-0">
+                <button
+                  onClick={() => openHistorial(trans)}
+                  className="text-gray-600 hover:text-gray-800 text-sm min-w-[60px]"
+                >
+                  Historial
+                </button>
                 <button
                   onClick={() => openEdit(trans)}
                   className="text-blue-600 hover:text-blue-800 text-sm min-w-[60px]"
@@ -836,6 +866,61 @@ export const TransaccionesPage: React.FC = () => {
           </div>
         </form>
       </FormModal>
+
+      {/* Historial Modal */}
+      {historialModalOpen && historialTransaccion && (
+        <FormModal
+          isOpen={historialModalOpen}
+          onClose={() => setHistorialModalOpen(false)}
+          title="Historial de Transacción"
+        >
+          {loadingHistorial ? (
+            <div className="text-center py-8">Cargando...</div>
+          ) : (
+            <>
+              <div className="mb-4 p-3 rounded-lg" style={{ backgroundColor: 'var(--color-bg)' }}>
+                <p className="text-sm" style={{ color: 'var(--color-text)' }}>
+                  <strong>Transacción:</strong> {historialTransaccion.categoria?.nombre} - {historialTransaccion.motivo?.nombre}
+                </p>
+                <p className="text-sm" style={{ color: 'var(--color-text-muted)' }}>
+                  <strong>Monto:</strong> Bs{Number(historialTransaccion.monto).toFixed(2)}
+                </p>
+              </div>
+              <div className="space-y-3">
+                {historial.map((h) => (
+                  <div
+                    key={h.id}
+                    className="p-3 rounded-lg border"
+                    style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-bg)' }}
+                  >
+                    <div className="flex justify-between items-center mb-2">
+                      <span
+                        className="px-2 py-0.5 rounded text-xs font-medium"
+                        style={{
+                          backgroundColor: h.accion === 'CREAR' ? 'var(--color-success-bg, #dcfce7)' :
+                            h.accion === 'MODIFICAR' ? 'var(--color-warning-bg, #fef9c3)' :
+                              'var(--color-error-bg, #fef2f2)',
+                          color: h.accion === 'CREAR' ? 'var(--color-success, #16a34a)' :
+                            h.accion === 'MODIFICAR' ? 'var(--color-warning, #f59e0b)' :
+                              'var(--color-error, #dc2626)',
+                        }}
+                      >
+                        {h.accion}
+                      </span>
+                      <span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
+                        {new Date(h.fecha).toLocaleString()}
+                      </span>
+                    </div>
+                    <p className="text-sm" style={{ color: 'var(--color-text)' }}>
+                      <strong>Usuario:</strong> {h.usuario?.nombre || h.usuarioId}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+        </FormModal>
+      )}
 
       {/* Visor de imagen */}
       {visorImagen && (

@@ -1,6 +1,7 @@
 import api from './api';
 import type {
   Transaccion,
+  TransaccionHistorial,
   CreateTransaccionDto,
   UpdateTransaccionDto,
   FiltrosTransaccion,
@@ -132,6 +133,11 @@ export const transaccionesService = {
     const response = await api.get('/transacciones/reporte-mensual', {
       params: { anio, mes },
     });
+    return response.data;
+  },
+
+  async getHistorial(transaccionId: string): Promise<TransaccionHistorial[]> {
+    const response = await api.get(`/transacciones/${transaccionId}/historial`);
     return response.data;
   },
 };
