@@ -142,9 +142,10 @@ interface FormModalProps {
   onClose: () => void;
   title: string;
   children: React.ReactNode;
+  footer?: React.ReactNode;
 }
 
-export const FormModal: React.FC<FormModalProps> = ({ isOpen, onClose, title, children }) => {
+export const FormModal: React.FC<FormModalProps> = ({ isOpen, onClose, title, children, footer }) => {
   if (!isOpen) return null;
 
   return (
@@ -174,6 +175,12 @@ export const FormModal: React.FC<FormModalProps> = ({ isOpen, onClose, title, ch
         <div className="flex-1 overflow-y-auto p-4">
           {children}
         </div>
+        {/* Footer fijo en mobile */}
+        {footer && (
+          <div className="shrink-0 border-t p-4" style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-card)' }}>
+            {footer}
+          </div>
+        )}
       </div>
 
       {/* Desktop: centered modal */}
@@ -193,6 +200,11 @@ export const FormModal: React.FC<FormModalProps> = ({ isOpen, onClose, title, ch
           </button>
         </div>
         {children}
+        {footer && (
+          <div className="mt-4 pt-4 border-t" style={{ borderColor: 'var(--color-border)' }}>
+            {footer}
+          </div>
+        )}
       </div>
     </div>
   );

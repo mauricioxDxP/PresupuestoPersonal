@@ -466,6 +466,25 @@ export function UsersPage() {
           isOpen={showPermisosModal}
           onClose={() => setShowPermisosModal(false)}
           title={`Permisos de ${selectedUser.nombre}`}
+          footer={
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => setShowPermisosModal(false)}
+                className="flex-1 py-2 px-4 rounded-lg font-medium border"
+                style={{ borderColor: 'var(--color-border)', color: 'var(--color-text)' }}
+              >
+                Cerrar
+              </button>
+              <button
+                onClick={savePermisos}
+                className="flex-1 py-2 px-4 rounded-lg font-medium"
+                style={{ backgroundColor: 'var(--color-primary)', color: '#fff' }}
+              >
+                Guardar Permisos
+              </button>
+            </div>
+          }
         >
           {loadingPermisos ? (
             <div className="text-center py-8" style={{ color: 'var(--color-text-muted)' }}>
@@ -762,24 +781,6 @@ export function UsersPage() {
                     );
                   })}
                 </div>
-              </div>
-
-              <div className="flex gap-3 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setShowPermisosModal(false)}
-                  className="flex-1 py-2 px-4 rounded-lg font-medium border"
-                  style={{ borderColor: 'var(--color-border)', color: 'var(--color-text)' }}
-                >
-                  Cerrar
-                </button>
-                <button
-                  onClick={savePermisos}
-                  className="flex-1 py-2 px-4 rounded-lg font-medium"
-                  style={{ backgroundColor: 'var(--color-primary)', color: '#fff' }}
-                >
-                  Guardar Permisos
-                </button>
               </div>
             </>
           )}
