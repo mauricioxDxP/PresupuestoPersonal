@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useAuth, Rol } from '../context/AuthContext';
 import api from '../services/api';
+import { getPerfis, assignUserPerfil, removeUserPerfil, getUserPerfil } from '../services/perfis';
+import { Perfil } from '../types/perfil';
 import { FormModal } from '../components/UI';
 
 interface User {
@@ -15,6 +17,7 @@ interface User {
     puedeCrear: boolean;
     puedeEditar: boolean;
     puedeEliminar: boolean;
+    puedeVer: boolean;
     puedeVerTransaccionesOtros: boolean;
   }>;
   motivoPermisos?: Array<{
@@ -23,6 +26,8 @@ interface User {
     puedeCrear: boolean;
     puedeEditar: boolean;
     puedeEliminar: boolean;
+    puedeVer: boolean;
+    puedeVerTransaccionesOtros: boolean;
   }>;
 }
 
@@ -54,9 +59,14 @@ export function UsersPage() {
   const [loadingPermisos, setLoadingPermisos] = useState(false);
 
   // Permisos editing state
-  const [permisosCategoria, setPermisosCategoria] = useState<{[catId: string]: {puedeCrear: boolean; puedeEditar: boolean; puedeEliminar: boolean; puedeVerTransaccionesOtros: boolean}}>({});
-  const [permisosMotivo, setPermisosMotivo] = useState<{[motivoId: string]: {puedeCrear: boolean; puedeEditar: boolean; puedeEliminar: boolean}}>({});
+  const [permisosCategoria, setPermisosCategoria] = useState<{[catId: string]: {puedeCrear: boolean; puedeEditar: boolean; puedeEliminar: boolean; puedeVer: boolean; puedeVerTransaccionesOtros: boolean}}>({});
+  const [permisosMotivo, setPermisosMotivo] = useState<{[motivoId: string]: {puedeCrear: boolean; puedeEditar: boolean; puedeEliminar: boolean; puedeVer: boolean; puedeVerTransaccionesOtros: boolean}}>({});
   const [successMsg, setSuccessMsg] = useState('');
+
+  // Perfil state
+  const [perfis, setPerfis] = useState<Perfil[]>([]);
+  const [selectedPerfilId, setSelectedPerfilId] = useState<string | null>(null);
+  const [userPerfil, setUserPerfil] = useState<{ perfil: Perfil; casa: { id: string; nombre: string } } | null>(null);
 
   const isMaestro = user?.rol === Rol.MAESTRO_CASA;
 
@@ -120,34 +130,57 @@ export function UsersPage() {
     setShowPermisosModal(true);
     setLoadingPermisos(true);
     setSuccessMsg('');
+    setSelectedPerfilId(null);
+    setUserPerfil(null);
 
     // Load current permisos into state
-    const catPerm: {[key: string]: {puedeCrear: boolean; puedeEditar: boolean; puedeEliminar: boolean; puedeVerTransaccionesOtros: boolean}} = {};
+    const catPerm: {[key: string]: {puedeCrear: boolean; puedeEditar: boolean; puedeEliminar: boolean; puedeVer: boolean; puedeVerTransaccionesOtros: boolean}} = {};
     (u.categoriaPermisos || []).forEach(cp => {
       catPerm[cp.categoria.id] = {
         puedeCrear: cp.puedeCrear,
         puedeEditar: cp.puedeEditar,
         puedeEliminar: cp.puedeEliminar,
+        puedeVer: cp.puedeVer,
         puedeVerTransaccionesOtros: cp.puedeVerTransaccionesOtros,
       };
     });
     setPermisosCategoria(catPerm);
 
-    const motPerm: {[key: string]: {puedeCrear: boolean; puedeEditar: boolean; puedeEliminar: boolean}} = {};
+    const motPerm: {[key: string]: {puedeCrear: boolean; puedeEditar: boolean; puedeEliminar: boolean; puedeVer: boolean; puedeVerTransaccionesOtros: boolean}} = {};
     (u.motivoPermisos || []).forEach(mp => {
       motPerm[mp.motivo.id] = {
         puedeCrear: mp.puedeCrear,
         puedeEditar: mp.puedeEditar,
         puedeEliminar: mp.puedeEliminar,
+        puedeVer: mp.puedeVer,
+        puedeVerTransaccionesOtros: mp.puedeVerTransaccionesOtros,
       };
     });
     setPermisosMotivo(motPerm);
+
+    // Load perfis and current user perfil assignment
+    const casaId = user?.casaIds?.[0];
+    if (casaId) {
+      try {
+        const [perfisData, perfilData] = await Promise.all([
+          getPerfis(casaId),
+          getUserPerfil(u.id, casaId),
+        ]);
+        setPerfis(perfisData);
+        if (perfilData) {
+          setUserPerfil(perfilData);
+          setSelectedPerfilId(perfilData.perfil.id);
+        }
+      } catch (err) {
+        console.error('Error loading perfis:', err);
+      }
+    }
 
     await loadCategoriasYMotivos();
     setLoadingPermisos(false);
   };
 
-  const togglePermisoCategoria = (catId: string, tipo: 'puedeCrear' | 'puedeEditar' | 'puedeEliminar' | 'puedeVerTransaccionesOtros') => {
+  const togglePermisoCategoria = (catId: string, tipo: 'puedeCrear' | 'puedeEditar' | 'puedeEliminar' | 'puedeVer' | 'puedeVerTransaccionesOtros') => {
     setPermisosCategoria(prev => ({
       ...prev,
       [catId]: {
@@ -155,13 +188,14 @@ export function UsersPage() {
         puedeCrear: false,
         puedeEditar: false,
         puedeEliminar: false,
+        puedeVer: false,
         puedeVerTransaccionesOtros: false,
         [tipo]: !prev[catId]?.[tipo],
       },
     }));
   };
 
-  const togglePermisoMotivo = (motivoId: string, tipo: 'puedeCrear' | 'puedeEditar' | 'puedeEliminar') => {
+  const togglePermisoMotivo = (motivoId: string, tipo: 'puedeCrear' | 'puedeEditar' | 'puedeEliminar' | 'puedeVer' | 'puedeVerTransaccionesOtros') => {
     setPermisosMotivo(prev => ({
       ...prev,
       [motivoId]: {
@@ -169,6 +203,8 @@ export function UsersPage() {
         puedeCrear: false,
         puedeEditar: false,
         puedeEliminar: false,
+        puedeVer: false,
+        puedeVerTransaccionesOtros: false,
         [tipo]: !prev[motivoId]?.[tipo],
       },
     }));
@@ -199,6 +235,34 @@ export function UsersPage() {
       await loadUsers();
     } catch (err: any) {
       alert(err.response?.data?.message || 'Error al guardar permisos');
+    }
+  };
+
+  const handleAssignPerfil = async () => {
+    if (!selectedUser || !selectedPerfilId || !user?.casaIds?.[0]) return;
+    
+    try {
+      const result = await assignUserPerfil(selectedUser.id, {
+        perfilId: selectedPerfilId,
+        casaId: user.casaIds[0],
+      });
+      setUserPerfil(result);
+      setSuccessMsg('Perfil asignado correctamente');
+    } catch (err: any) {
+      alert(err.response?.data?.message || 'Error al asignar perfil');
+    }
+  };
+
+  const handleRemovePerfil = async () => {
+    if (!selectedUser || !user?.casaIds?.[0]) return;
+    
+    try {
+      await removeUserPerfil(selectedUser.id, user.casaIds[0]);
+      setUserPerfil(null);
+      setSelectedPerfilId(null);
+      setSuccessMsg('Perfil removido correctamente');
+    } catch (err: any) {
+      alert(err.response?.data?.message || 'Error al remover perfil');
     }
   };
 
@@ -421,113 +485,98 @@ export function UsersPage() {
                 </div>
               )}
 
-              {/* Permisos de Categoría */}
-              <div className="mb-6">
-                <div className="flex justify-between items-center mb-3">
-                  <h3 className="text-lg font-semibold" style={{ color: 'var(--color-text)' }}>
-                    Permisos por Categoría
-                  </h3>
-                  <div className="flex gap-2 text-xs">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const newPermisos: {[key: string]: {puedeCrear: boolean; puedeEditar: boolean; puedeEliminar: boolean; puedeVerTransaccionesOtros: boolean}} = {};
-                        categorias.forEach(cat => {
-                          newPermisos[cat.id] = { puedeCrear: true, puedeEditar: true, puedeEliminar: true, puedeVerTransaccionesOtros: true };
-                        });
-                        setPermisosCategoria(newPermisos);
+              {/* Perfil de Permisos Section */}
+              <div className="mb-6 p-4 rounded-lg border" style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-surface)' }}>
+                <h3 className="text-lg font-semibold mb-3" style={{ color: 'var(--color-text)' }}>
+                  Perfil de Permisos
+                </h3>
+                <p className="text-sm mb-3" style={{ color: 'var(--color-text-muted)' }}>
+                  Asigna un perfil para establecer permisos rápidamente. Los permisos individuales se usan como respaldo si no hay perfil asignado.
+                </p>
+                
+                <div className="flex flex-wrap gap-3 items-end">
+                  <div className="flex-1 min-w-[200px]">
+                    <label className="block text-sm font-medium mb-1" style={{ color: 'var(--color-text-muted)' }}>
+                      Perfil
+                    </label>
+                    <select
+                      value={selectedPerfilId || ''}
+                      onChange={(e) => setSelectedPerfilId(e.target.value || null)}
+                      className="w-full px-3 py-2 rounded-lg border"
+                      style={{ 
+                        backgroundColor: 'var(--color-bg)',
+                        borderColor: 'var(--color-border)',
+                        color: 'var(--color-text)'
                       }}
-                      className="px-2 py-1 rounded border"
-                      style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-muted)' }}
                     >
-                      Seleccionar todos
-                    </button>
+                      <option value="">Sin perfil (permisos individuales)</option>
+                      {perfis.map(p => (
+                        <option key={p.id} value={p.id}>{p.nombre}</option>
+                      ))}
+                    </select>
+                  </div>
+                  
+                  {selectedPerfilId && (
                     <button
                       type="button"
-                      onClick={() => setPermisosCategoria({})}
-                      className="px-2 py-1 rounded border"
-                      style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-muted)' }}
+                      onClick={handleAssignPerfil}
+                      className="px-4 py-2 rounded-lg font-medium"
+                      style={{ backgroundColor: 'var(--color-primary)', color: '#fff' }}
                     >
-                      Limpiar todos
+                      {userPerfil ? 'Cambiar Perfil' : 'Asignar Perfil'}
                     </button>
+                  )}
+                  
+                  {userPerfil && (
+                    <button
+                      type="button"
+                      onClick={handleRemovePerfil}
+                      className="px-4 py-2 rounded-lg font-medium border"
+                      style={{ borderColor: 'var(--color-border)', color: 'var(--color-error, #dc2626)' }}
+                    >
+                      Remover Perfil
+                    </button>
+                  )}
+                </div>
+
+                {userPerfil && (
+                  <div className="mt-3 p-3 rounded border" style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-bg)' }}>
+                    <div className="text-sm">
+                      <span className="font-medium" style={{ color: 'var(--color-text)' }}>
+                        {userPerfil.perfil.nombre}
+                      </span>
+                      {userPerfil.perfil.descripcion && (
+                        <span style={{ color: 'var(--color-text-muted)' }}> — {userPerfil.perfil.descripcion}</span>
+                      )}
+                    </div>
+                    <div className="text-xs mt-1" style={{ color: 'var(--color-text-muted)' }}>
+                      {userPerfil.perfil.categoriaPermisos.length} permisos de categoría, {userPerfil.perfil.motivoPermisos.length} permisos de motivo
+                    </div>
                   </div>
-                </div>
-                <div className="overflow-x-auto rounded-lg border" style={{ borderColor: 'var(--color-border)' }}>
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr style={{ backgroundColor: 'var(--color-surface)', borderColor: 'var(--color-border)' }}>
-                        <th className="text-left p-3 font-medium" style={{ color: 'var(--color-text-muted)' }}>Categoría</th>
-                        <th className="text-center p-3 font-medium w-20" style={{ color: 'var(--color-text-muted)' }}>Crear</th>
-                        <th className="text-center p-3 font-medium w-20" style={{ color: 'var(--color-text-muted)' }}>Editar</th>
-                        <th className="text-center p-3 font-medium w-20" style={{ color: 'var(--color-text-muted)' }}>Eliminar</th>
-                        <th className="text-center p-3 font-medium w-20" style={{ color: 'var(--color-text-muted)' }}>Ver Otros</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {categorias.map(cat => {
-                        const p = permisosCategoria[cat.id] || { puedeCrear: false, puedeEditar: false, puedeEliminar: false, puedeVerTransaccionesOtros: false };
-                        return (
-                          <tr 
-                            key={cat.id}
-                            className="border-t"
-                            style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-bg)' }}
-                          >
-                            <td className="p-3" style={{ color: 'var(--color-text)' }}>{cat.nombre}</td>
-                            <td className="p-3 text-center">
-                              <input
-                                type="checkbox"
-                                checked={p.puedeCrear}
-                                onChange={() => togglePermisoCategoria(cat.id, 'puedeCrear')}
-                                className="w-4 h-4"
-                              />
-                            </td>
-                            <td className="p-3 text-center">
-                              <input
-                                type="checkbox"
-                                checked={p.puedeEditar}
-                                onChange={() => togglePermisoCategoria(cat.id, 'puedeEditar')}
-                                className="w-4 h-4"
-                              />
-                            </td>
-                            <td className="p-3 text-center">
-                              <input
-                                type="checkbox"
-                                checked={p.puedeEliminar}
-                                onChange={() => togglePermisoCategoria(cat.id, 'puedeEliminar')}
-                                className="w-4 h-4"
-                              />
-                            </td>
-                            <td className="p-3 text-center">
-                              <input
-                                type="checkbox"
-                                checked={p.puedeVerTransaccionesOtros}
-                                onChange={() => togglePermisoCategoria(cat.id, 'puedeVerTransaccionesOtros')}
-                                className="w-4 h-4"
-                              />
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
+                )}
               </div>
 
-              {/* Permisos de Motivo */}
-              <div className="mb-6">
+              {/* Permisos unificados: Categoría + Motivo */}
+              <div className="mb-4">
                 <div className="flex justify-between items-center mb-3">
                   <h3 className="text-lg font-semibold" style={{ color: 'var(--color-text)' }}>
-                    Permisos por Motivo (Restrictivo)
+                    Permisos
                   </h3>
                   <div className="flex gap-2 text-xs">
                     <button
                       type="button"
                       onClick={() => {
-                        const newPermisos: {[key: string]: {puedeCrear: boolean; puedeEditar: boolean; puedeEliminar: boolean}} = {};
+                        // Seleccionar todos para TODOS los motivos y categorias
+                        const newPermisosMotivo: {[key: string]: {puedeCrear: boolean; puedeEditar: boolean; puedeEliminar: boolean; puedeVer: boolean; puedeVerTransaccionesOtros: boolean}} = {};
                         motivos.forEach(mot => {
-                          newPermisos[mot.id] = { puedeCrear: true, puedeEditar: true, puedeEliminar: true };
+                          newPermisosMotivo[mot.id] = { puedeCrear: true, puedeEditar: true, puedeEliminar: true, puedeVer: true, puedeVerTransaccionesOtros: true };
                         });
-                        setPermisosMotivo(newPermisos);
+                        setPermisosMotivo(newPermisosMotivo);
+                        const newPermisosCat: {[key: string]: {puedeCrear: boolean; puedeEditar: boolean; puedeEliminar: boolean; puedeVer: boolean; puedeVerTransaccionesOtros: boolean}} = {};
+                        categorias.forEach(cat => {
+                          newPermisosCat[cat.id] = { puedeCrear: true, puedeEditar: true, puedeEliminar: true, puedeVer: true, puedeVerTransaccionesOtros: true };
+                        });
+                        setPermisosCategoria(newPermisosCat);
                       }}
                       className="px-2 py-1 rounded border"
                       style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-muted)' }}
@@ -536,7 +585,10 @@ export function UsersPage() {
                     </button>
                     <button
                       type="button"
-                      onClick={() => setPermisosMotivo({})}
+                      onClick={() => {
+                        setPermisosMotivo({});
+                        setPermisosCategoria({});
+                      }}
                       className="px-2 py-1 rounded border"
                       style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-muted)' }}
                     >
@@ -545,65 +597,167 @@ export function UsersPage() {
                   </div>
                 </div>
                 <p className="text-sm mb-3" style={{ color: 'var(--color-text-muted)' }}>
-                  Los permisos de motivo restringen acceso a motivos específicos dentro de una categoría.
+                  La primera fila de cada tabla muestra los permisos de categoría (aplican a todos sus motivos).
                 </p>
-                <div className="space-y-3">
+                <div className="space-y-4">
                   {categorias.map(cat => {
                     const catMotivos = motivos.filter(m => m.categoriaId === cat.id);
                     if (catMotivos.length === 0) return null;
+                    const pCat = permisosCategoria[cat.id] || { puedeCrear: false, puedeEditar: false, puedeEliminar: false, puedeVer: false, puedeVerTransaccionesOtros: false };
                     return (
                       <div key={cat.id} className="border rounded-lg overflow-hidden" style={{ borderColor: 'var(--color-border)' }}>
-                        <div className="font-medium p-3" style={{ color: 'var(--color-text)', backgroundColor: 'var(--color-surface)' }}>{cat.nombre}</div>
-                        <div className="overflow-x-auto">
-                          <table className="w-full text-sm">
-                            <thead>
-                              <tr style={{ borderColor: 'var(--color-border)' }}>
-                                <th className="text-left p-2 pl-4 font-medium text-xs" style={{ color: 'var(--color-text-muted)' }}>Motivo</th>
-                                <th className="text-center p-2 font-medium w-16 text-xs" style={{ color: 'var(--color-text-muted)' }}>Crear</th>
-                                <th className="text-center p-2 font-medium w-16 text-xs" style={{ color: 'var(--color-text-muted)' }}>Editar</th>
-                                <th className="text-center p-2 pr-4 font-medium w-16 text-xs" style={{ color: 'var(--color-text-muted)' }}>Eliminar</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {catMotivos.map(mot => {
-                                const p = permisosMotivo[mot.id] || { puedeCrear: false, puedeEditar: false, puedeEliminar: false };
-                                return (
-                                  <tr 
-                                    key={mot.id}
-                                    className="border-t"
-                                    style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-bg)' }}
-                                  >
-                                    <td className="p-2 pl-4" style={{ color: 'var(--color-text-muted)' }}>{mot.nombre}</td>
-                                    <td className="p-2 text-center">
-                                      <input
-                                        type="checkbox"
-                                        checked={p.puedeCrear}
-                                        onChange={() => togglePermisoMotivo(mot.id, 'puedeCrear')}
-                                        className="w-4 h-4"
-                                      />
-                                    </td>
-                                    <td className="p-2 text-center">
-                                      <input
-                                        type="checkbox"
-                                        checked={p.puedeEditar}
-                                        onChange={() => togglePermisoMotivo(mot.id, 'puedeEditar')}
-                                        className="w-4 h-4"
-                                      />
-                                    </td>
-                                    <td className="p-2 pr-4 text-center">
-                                      <input
-                                        type="checkbox"
-                                        checked={p.puedeEliminar}
-                                        onChange={() => togglePermisoMotivo(mot.id, 'puedeEliminar')}
-                                        className="w-4 h-4"
-                                      />
-                                    </td>
-                                  </tr>
-                                );
-                              })}
-                            </tbody>
-                          </table>
+                        <div className="p-3 flex flex-wrap items-center gap-4" style={{ backgroundColor: 'var(--color-surface)' }}>
+                          <span className="font-medium" style={{ color: 'var(--color-text)' }}>{cat.nombre}</span>
+                          <div className="flex gap-3 text-xs items-center flex-wrap">
+                            <label className="flex items-center gap-1 cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={pCat.puedeVer}
+                                onChange={() => togglePermisoCategoria(cat.id, 'puedeVer')}
+                                className="w-4 h-4"
+                              />
+                              <span style={{ color: 'var(--color-text-muted)' }}>Ver</span>
+                            </label>
+                            <label className="flex items-center gap-1 cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={pCat.puedeCrear}
+                                onChange={() => togglePermisoCategoria(cat.id, 'puedeCrear')}
+                                className="w-4 h-4"
+                              />
+                              <span style={{ color: 'var(--color-text-muted)' }}>Crear</span>
+                            </label>
+                            <label className="flex items-center gap-1 cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={pCat.puedeEditar}
+                                onChange={() => togglePermisoCategoria(cat.id, 'puedeEditar')}
+                                className="w-4 h-4"
+                              />
+                              <span style={{ color: 'var(--color-text-muted)' }}>Editar</span>
+                            </label>
+                            <label className="flex items-center gap-1 cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={pCat.puedeEliminar}
+                                onChange={() => togglePermisoCategoria(cat.id, 'puedeEliminar')}
+                                className="w-4 h-4"
+                              />
+                              <span style={{ color: 'var(--color-text-muted)' }}>Eliminar</span>
+                            </label>
+                            <label className="flex items-center gap-1 cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={pCat.puedeVerTransaccionesOtros}
+                                onChange={() => togglePermisoCategoria(cat.id, 'puedeVerTransaccionesOtros')}
+                                className="w-4 h-4"
+                              />
+                              <span style={{ color: 'var(--color-text-muted)' }}>Ver Otros</span>
+                            </label>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const newPermisosMotivo = { ...permisosMotivo };
+                              catMotivos.forEach(mot => {
+                                newPermisosMotivo[mot.id] = { puedeCrear: true, puedeEditar: true, puedeEliminar: true, puedeVer: true, puedeVerTransaccionesOtros: true };
+                              });
+                              setPermisosMotivo(newPermisosMotivo);
+                              setPermisosCategoria(prev => ({
+                                ...prev,
+                                [cat.id]: { puedeCrear: true, puedeEditar: true, puedeEliminar: true, puedeVer: true, puedeVerTransaccionesOtros: true },
+                              }));
+                            }}
+                            className="px-2 py-1 rounded border text-xs"
+                            style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-muted)' }}
+                          >
+                            Seleccionar todos
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const newPermisosMotivo = { ...permisosMotivo };
+                              catMotivos.forEach(mot => {
+                                newPermisosMotivo[mot.id] = { puedeCrear: false, puedeEditar: false, puedeEliminar: false, puedeVer: false, puedeVerTransaccionesOtros: false };
+                              });
+                              setPermisosMotivo(newPermisosMotivo);
+                              setPermisosCategoria(prev => ({
+                                ...prev,
+                                [cat.id]: { puedeCrear: false, puedeEditar: false, puedeEliminar: false, puedeVer: false, puedeVerTransaccionesOtros: false },
+                              }));
+                            }}
+                            className="px-2 py-1 rounded border text-xs"
+                            style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-muted)' }}
+                          >
+                            Limpiar todos
+                          </button>
                         </div>
+                        <table className="w-full text-sm">
+                          <thead>
+                            <tr style={{ borderColor: 'var(--color-border)' }}>
+                              <th className="text-left p-2 pl-4 font-medium text-xs" style={{ color: 'var(--color-text-muted)' }}>Motivo</th>
+                              <th className="text-center p-2 font-medium w-16 text-xs" style={{ color: 'var(--color-text-muted)' }}>Ver</th>
+                              <th className="text-center p-2 font-medium w-16 text-xs" style={{ color: 'var(--color-text-muted)' }}>Crear</th>
+                              <th className="text-center p-2 font-medium w-16 text-xs" style={{ color: 'var(--color-text-muted)' }}>Editar</th>
+                              <th className="text-center p-2 font-medium w-16 text-xs" style={{ color: 'var(--color-text-muted)' }}>Eliminar</th>
+                              <th className="text-center p-2 pr-4 font-medium w-16 text-xs" style={{ color: 'var(--color-text-muted)' }}>Ver Otros</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {catMotivos.map(mot => {
+                              const pMot = permisosMotivo[mot.id] || { puedeCrear: false, puedeEditar: false, puedeEliminar: false, puedeVer: false, puedeVerTransaccionesOtros: false };
+                              return (
+                                <tr 
+                                  key={mot.id}
+                                  className="border-t"
+                                  style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-bg)' }}
+                                >
+                                  <td className="p-2 pl-4" style={{ color: 'var(--color-text-muted)' }}>{mot.nombre}</td>
+                                  <td className="p-2 text-center">
+                                    <input
+                                      type="checkbox"
+                                      checked={pMot.puedeVer}
+                                      onChange={() => togglePermisoMotivo(mot.id, 'puedeVer')}
+                                      className="w-4 h-4"
+                                    />
+                                  </td>
+                                  <td className="p-2 text-center">
+                                    <input
+                                      type="checkbox"
+                                      checked={pMot.puedeCrear}
+                                      onChange={() => togglePermisoMotivo(mot.id, 'puedeCrear')}
+                                      className="w-4 h-4"
+                                    />
+                                  </td>
+                                  <td className="p-2 text-center">
+                                    <input
+                                      type="checkbox"
+                                      checked={pMot.puedeEditar}
+                                      onChange={() => togglePermisoMotivo(mot.id, 'puedeEditar')}
+                                      className="w-4 h-4"
+                                    />
+                                  </td>
+                                  <td className="p-2 text-center">
+                                    <input
+                                      type="checkbox"
+                                      checked={pMot.puedeEliminar}
+                                      onChange={() => togglePermisoMotivo(mot.id, 'puedeEliminar')}
+                                      className="w-4 h-4"
+                                    />
+                                  </td>
+                                  <td className="p-2 pr-4 text-center">
+                                    <input
+                                      type="checkbox"
+                                      checked={pMot.puedeVerTransaccionesOtros}
+                                      onChange={() => togglePermisoMotivo(mot.id, 'puedeVerTransaccionesOtros')}
+                                      className="w-4 h-4"
+                                    />
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
                       </div>
                     );
                   })}

@@ -1,6 +1,6 @@
 // Dynamic cache versioning based on build timestamp
 // This changes on every build, forcing cache refresh
-const CACHE_VERSION = 'v20250503'; // Will be replaced by build script
+const CACHE_VERSION = 'v20260504'; // Will be replaced by build script
 const CACHE_NAME = `financetrack-${CACHE_VERSION}`;
 
 // Files that trigger a cache refresh when changed

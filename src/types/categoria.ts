@@ -6,6 +6,9 @@ export interface Categoria {
   eliminado: boolean;
   createdAt: string;
   updatedAt: string;
+  // Permisos del usuario actual sobre esta categoría (para filtros UI)
+  puedeVer?: boolean;
+  puedeVerTransaccionesOtros?: boolean;
 }
 
 export interface CreateCategoriaDto {

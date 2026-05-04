@@ -3,8 +3,16 @@ import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth, Rol } from '../context/AuthContext';
 import { CasaSelector } from './CasaSelector';
 
+interface NavItem {
+  to?: string;
+  label: string;
+  icon?: string;
+  children?: NavItem[];
+}
+
 export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [gestionOpen, setGestionOpen] = useState(false);
   const { user, isAuthenticated, logout, selectedCasaId } = useAuth();
   const navigate = useNavigate();
 
@@ -18,6 +26,44 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
   const hasCasaAsignada = !!(user?.casaIds && user.casaIds.length > 0);
   const hasSelectedCasa = !!(selectedCasaId && hasCasaAsignada && user?.casaIds.includes(selectedCasaId));
   const isAdmin = user?.rol === Rol.ADMIN;
+  const isMaestro = user?.rol === Rol.MAESTRO_CASA;
+
+  // Admin has full menu regardless of casa assignment
+  const navItems: NavItem[] = isAdmin ? [
+    { to: '/casas', label: 'Casas', icon: '🏠' },
+    { to: '/configuracion', label: 'Configuración', icon: '⚙️' },
+  ] : (hasCasaAsignada ? [
+    ...(isAuthenticated && user?.rol === Rol.ADMIN
+      ? [
+          { to: '/casas', label: 'Casas', icon: '🏠' },
+        ]
+      : []),
+    ...(isAuthenticated && user?.rol === Rol.ADMIN
+      ? []
+      : [
+          { to: '/dashboard', label: 'Dashboard', icon: '📊' },
+        ]),
+    // MAESTRO_CASA y USUARIO: ven gestión de casa
+    ...(isAuthenticated && (user?.rol === Rol.MAESTRO_CASA || user?.rol === Rol.USUARIO)
+      ? [
+          { to: '/transacciones', label: 'Transacciones', icon: '💰' },
+          { to: '/reportes', label: 'Reportes', icon: '📈' },
+          { 
+            label: 'Gestión', 
+            icon: '⚙️',
+            children: [
+              { to: '/categorias', label: 'Categorías', icon: '📁' },
+              { to: '/motivos', label: 'Motivos', icon: '🏷️' },
+              ...(isMaestro ? [
+                { to: '/usuarios', label: 'Usuarios', icon: '👥' },
+                { to: '/perfis', label: 'Perfiles', icon: '🎭' },
+              ] : []),
+            ]
+          },
+        ]
+      : []),
+    { to: '/configuracion', label: 'Configuración', icon: '⚙️' },
+  ] : []);
 
   const linkClass = ({ isActive }: { isActive: boolean }) =>
     `block px-4 py-3 rounded transition-all text-base ${
@@ -31,37 +77,154 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
       ? { backgroundColor: 'var(--color-nav-bg-active)', color: 'var(--color-nav-text-active)' }
       : { color: 'var(--color-nav-text)' };
 
-  // Admin has full menu regardless of casa assignment
-  const navLinks = isAdmin ? [
-    { to: '/casas', label: '🏠 Casas' },
-    { to: '/configuracion', label: '⚙️ Configuración' },
-  ] : (hasCasaAsignada ? [
-    ...(isAuthenticated && user?.rol === Rol.ADMIN
-      ? [
-          { to: '/casas', label: '🏠 Casas' },
-        ]
-      : []),
-    ...(isAuthenticated && user?.rol === Rol.ADMIN
-      ? []
-      : [
-          { to: '/dashboard', label: '📊 Dashboard' },
-        ]),
-    // MAESTRO_CASA y USUARIO: ven gestión de casa
-    ...(isAuthenticated && (user?.rol === Rol.MAESTRO_CASA || user?.rol === Rol.USUARIO)
-      ? [
-          { to: '/categorias', label: '📁 Categorías' },
-          { to: '/motivos', label: '🏷️ Motivos' },
-          { to: '/transacciones', label: '💰 Transacciones' },
-          { to: '/reportes', label: '📈 Reportes' },
-          ...(user?.rol === Rol.MAESTRO_CASA
-            ? [
-                { to: '/usuarios', label: '👥 Usuarios' },
-              ]
-            : []),
-        ]
-      : []),
-    { to: '/configuracion', label: '⚙️ Configuración' },
-  ] : []);
+  const renderNavItem = (item: NavItem, index: number, isMobile: boolean = false) => {
+    if (item.children) {
+      if (isMobile) {
+        // Mobile: accordion style - children inline below
+        return (
+          <div key={index}>
+            <button
+              onClick={() => setGestionOpen(!gestionOpen)}
+              className={`w-full flex items-center justify-between px-4 py-3 rounded transition-all text-base ${
+                gestionOpen ? 'text-[var(--color-nav-text-active)]' : 'text-[var(--color-nav-text)]'
+              }`}
+              style={gestionOpen ? { backgroundColor: 'var(--color-nav-bg-active)' } : {}}
+            >
+              <span className="flex items-center gap-2">
+                <span>{item.icon}</span>
+                <span>{item.label}</span>
+              </span>
+              <svg className={`w-4 h-4 transition-transform ${gestionOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+            
+            {gestionOpen && (
+              <div className="pl-4 space-y-1">
+                {item.children.map((child, childIndex) => (
+                  child.to ? (
+                  <NavLink
+                    key={childIndex}
+                    to={child.to}
+                    className={({ isActive: childActive }) =>
+                      `flex items-center gap-2 px-4 py-2 rounded transition-all text-sm ${
+                        childActive ? 'text-[var(--color-primary)]' : 'text-[var(--color-nav-text)]'
+                      }`
+                    }
+                    style={({ isActive: childActive }) => 
+                      childActive ? { backgroundColor: 'var(--color-nav-bg-active)' } : {}
+                    }
+                    onClick={() => {
+                      setGestionOpen(false);
+                      setMenuOpen(false);
+                    }}
+                  >
+                    <span>{child.icon}</span>
+                    <span>{child.label}</span>
+                  </NavLink>
+                  ) : null
+                ))}
+              </div>
+            )}
+          </div>
+        );
+      }
+
+      // Desktop: dropdown menu
+      const isActive = item.children.some(child => window.location.pathname.startsWith(child.to || ''));
+      return (
+        <div key={index} className="relative">
+          <button
+            onClick={() => setGestionOpen(!gestionOpen)}
+            onMouseEnter={() => setGestionOpen(true)}
+            className={`w-full flex items-center justify-between px-4 py-3 rounded transition-all text-base ${
+              isActive ? 'text-[var(--color-nav-text-active)]' : 'text-[var(--color-nav-text)]'
+            }`}
+            style={isActive ? { backgroundColor: 'var(--color-nav-bg-active)' } : {}}
+          >
+            <span className="flex items-center gap-2">
+              <span>{item.icon}</span>
+              <span>{item.label}</span>
+            </span>
+            <svg className={`w-4 h-4 transition-transform ${gestionOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+          
+          {gestionOpen && (
+            <div 
+              className="absolute top-full left-0 mt-1 min-w-[200px] rounded-lg border overflow-hidden z-50 shadow-lg"
+              style={{ 
+                backgroundColor: 'var(--color-surface)',
+                borderColor: 'var(--color-border)'
+              }}
+              onMouseLeave={() => setGestionOpen(false)}
+            >
+              {item.children.map((child, childIndex) => (
+                child.to ? (
+                <NavLink
+                  key={childIndex}
+                  to={child.to}
+                  className={({ isActive: childActive }) =>
+                    `flex items-center gap-2 px-4 py-2 transition-all text-sm ${
+                      childActive ? 'text-[var(--color-primary)]' : 'text-[var(--color-nav-text)]'
+                    }`
+                  }
+                  style={({ isActive: childActive }) => 
+                    childActive ? { backgroundColor: 'var(--color-nav-bg-active)' } : {}
+                  }
+                  onClick={() => {
+                    setGestionOpen(false);
+                    setMenuOpen(false);
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!e.currentTarget.style.backgroundColor || e.currentTarget.style.backgroundColor === 'var(--color-nav-bg-active)') return;
+                    e.currentTarget.style.backgroundColor = 'var(--color-nav-bg-hover)';
+                  }}
+                  onMouseLeave={(e) => {
+                    if (e.currentTarget.style.backgroundColor === 'var(--color-nav-bg-active)') return;
+                    e.currentTarget.style.backgroundColor = 'transparent';
+                  }}
+                >
+                  <span>{child.icon}</span>
+                  <span>{child.label}</span>
+                </NavLink>
+                ) : null
+              ))}
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    // Regular link
+    return (
+      <NavLink
+        key={index}
+        to={item.to!}
+        className={linkClass}
+        style={({ isActive }) => ({
+          ...linkStyle(isActive || false),
+        })}
+        onMouseEnter={(e) => {
+          const el = e.currentTarget as HTMLElement;
+          if (!el.style.backgroundColor || el.style.backgroundColor === 'var(--color-nav-bg-active)') return;
+          el.style.backgroundColor = 'var(--color-nav-bg-hover)';
+        }}
+        onMouseLeave={(e) => {
+          const el = e.currentTarget as HTMLElement;
+          if (el.style.backgroundColor === 'var(--color-nav-bg-active)') return;
+          el.style.backgroundColor = 'transparent';
+        }}
+        end={item.to === '/dashboard' || item.to === '/casas'}
+      >
+        <span className="flex items-center gap-2">
+          <span>{item.icon}</span>
+          <span>{item.label}</span>
+        </span>
+      </NavLink>
+    );
+  };
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: 'var(--color-bg)' }}>
@@ -84,29 +247,7 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
 
             {/* Desktop Menu */}
             <div className="hidden md:flex items-center gap-2">
-              {navLinks.map((link) => (
-                <NavLink
-                  key={link.to}
-                  to={link.to}
-                  className={linkClass}
-                  style={({ isActive }) => ({
-                    ...linkStyle(isActive || false),
-                  })}
-                  onMouseEnter={(e) => {
-                    const el = e.currentTarget as HTMLElement;
-                    if (!el.style.backgroundColor || el.style.backgroundColor === 'var(--color-nav-bg-active)') return;
-                    el.style.backgroundColor = 'var(--color-nav-bg-hover)';
-                  }}
-                  onMouseLeave={(e) => {
-                    const el = e.currentTarget as HTMLElement;
-                    if (el.style.backgroundColor === 'var(--color-nav-bg-active)') return;
-                    el.style.backgroundColor = 'transparent';
-                  }}
-                  end={link.to === '/dashboard' || link.to === '/casas'}
-                >
-                  {link.label}
-                </NavLink>
-              ))}
+              {navItems.map((item, index) => renderNavItem(item, index, false))}
             </div>
 
             {/* User Menu */}
@@ -164,17 +305,7 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
                   <CasaSelector />
                 </div>
               )}
-              {navLinks.map((link) => (
-                <NavLink
-                  key={link.to}
-                  to={link.to}
-                  className={linkClass}
-                  onClick={() => setMenuOpen(false)}
-                  end={link.to === '/dashboard' || link.to === '/casas'}
-                >
-                  {link.label}
-                </NavLink>
-              ))}
+              {navItems.map((item, index) => renderNavItem(item, index, true))}
               <button
                 onClick={() => { setMenuOpen(false); handleLogout(); }}
                 className="w-full text-left block px-4 py-3 rounded transition-all text-base"
@@ -223,10 +354,10 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
         }}
       >
         <div className="flex justify-around py-2">
-          {navLinks.map((link) => (
+          {navItems.filter(item => !item.children).map((item, index) => (
             <NavLink
-              key={link.to}
-              to={link.to}
+              key={index}
+              to={item.to!}
               className={({ isActive }) =>
                 `flex flex-col items-center justify-center py-1 px-2 rounded transition-colors min-w-0 ${
                   isActive
@@ -234,12 +365,10 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
                     : 'text-[var(--color-text-muted)]'
                 }`
               }
-              end={link.to === '/dashboard' || link.to === '/casas'}
+              end={item.to === '/dashboard' || item.to === '/casas'}
             >
-              <span className="text-lg leading-none">{link.label.split(' ')[0]}</span>
-              <span className="text-[10px] mt-0.5 truncate max-w-full">
-                {link.label.split(' ').slice(1).join(' ')}
-              </span>
+              <span className="text-lg leading-none">{item.icon}</span>
+              <span className="text-[10px] mt-0.5 truncate max-w-full">{item.label}</span>
             </NavLink>
           ))}
         </div>
