@@ -156,8 +156,8 @@ export const FormModal: React.FC<FormModalProps> = ({ isOpen, onClose, title, ch
     >
       {/* Mobile: full screen sheet that slides up */}
       <div
-        className="sm:hidden fixed inset-x-0 bottom-0 top-16 flex flex-col rounded-t-xl overflow-hidden"
-        style={{ backgroundColor: 'var(--color-card)' }}
+        className="sm:hidden fixed inset-x-0 bottom-0 flex flex-col rounded-t-xl overflow-hidden"
+        style={{ backgroundColor: 'var(--color-card)', maxHeight: 'calc(100vh - 4rem - 60px)', top: '4rem', bottom: '60px' }}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header fijo */}
@@ -172,7 +172,7 @@ export const FormModal: React.FC<FormModalProps> = ({ isOpen, onClose, title, ch
           </button>
         </div>
         {/* Contenido scrolleable */}
-        <div className="flex-1 overflow-y-auto p-4">
+        <div className="flex-1 overflow-y-auto p-4 min-h-0">
           {children}
         </div>
         {/* Footer fijo en mobile */}
