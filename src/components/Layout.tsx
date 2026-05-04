@@ -25,9 +25,11 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
   // Also verify selectedCasaId is actually in user's casaIds (handles stale localStorage)
   const hasCasaAsignada = !!(user?.casaIds && user.casaIds.length > 0);
   const hasSelectedCasa = !!(selectedCasaId && hasCasaAsignada && user?.casaIds.includes(selectedCasaId));
+  
+  // ADMIN global - solo este se lee del user.rol global
   const isAdmin = user?.rol === Rol.ADMIN;
 
-  // Get per-casa role for selected casa
+  // Get per-casa role for selected casa (MAESTRO_CASA y USUARIO vienen de aqui)
   const selectedCasaData = user?.casas?.find(c => c.id === selectedCasaId);
   const isMaestroCasa = selectedCasaData?.rol === Rol.MAESTRO_CASA;
   const isUsuarioCasa = selectedCasaData?.rol === Rol.USUARIO;
@@ -42,11 +44,11 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
           { to: '/casas', label: 'Casas', icon: '🏠' },
         ]
       : []),
-    ...(isAuthenticated && user?.rol === Rol.ADMIN
-      ? []
-      : [
+    ...(isAuthenticated && !isAdmin
+      ? [
           { to: '/dashboard', label: 'Dashboard', icon: '📊' },
-        ]),
+        ] 
+      : []),
     // MAESTRO_CASA y USUARIO: ven gestión de casa (basado en rol por casa)
     ...(isAuthenticated && (isMaestroCasa || isUsuarioCasa)
       ? [
