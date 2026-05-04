@@ -26,7 +26,11 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
   const hasCasaAsignada = !!(user?.casaIds && user.casaIds.length > 0);
   const hasSelectedCasa = !!(selectedCasaId && hasCasaAsignada && user?.casaIds.includes(selectedCasaId));
   const isAdmin = user?.rol === Rol.ADMIN;
-  const isMaestro = user?.rol === Rol.MAESTRO_CASA;
+
+  // Get per-casa role for selected casa
+  const selectedCasaData = user?.casas?.find(c => c.id === selectedCasaId);
+  const isMaestroCasa = selectedCasaData?.rol === Rol.MAESTRO_CASA;
+  const isUsuarioCasa = selectedCasaData?.rol === Rol.USUARIO;
 
   // Admin has full menu regardless of casa assignment
   const navItems: NavItem[] = isAdmin ? [
@@ -43,8 +47,8 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
       : [
           { to: '/dashboard', label: 'Dashboard', icon: '📊' },
         ]),
-    // MAESTRO_CASA y USUARIO: ven gestión de casa
-    ...(isAuthenticated && (user?.rol === Rol.MAESTRO_CASA || user?.rol === Rol.USUARIO)
+    // MAESTRO_CASA y USUARIO: ven gestión de casa (basado en rol por casa)
+    ...(isAuthenticated && (isMaestroCasa || isUsuarioCasa)
       ? [
           { to: '/transacciones', label: 'Transacciones', icon: '💰' },
           { to: '/reportes', label: 'Reportes', icon: '📈' },
@@ -54,7 +58,7 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
             children: [
               { to: '/categorias', label: 'Categorías', icon: '📁' },
               { to: '/motivos', label: 'Motivos', icon: '🏷️' },
-              ...(isMaestro ? [
+              ...(isMaestroCasa ? [
                 { to: '/usuarios', label: 'Usuarios', icon: '👥' },
                 { to: '/perfis', label: 'Perfiles', icon: '🎭' },
               ] : []),
