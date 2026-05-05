@@ -1,6 +1,6 @@
 // Dynamic cache versioning based on build timestamp
 // This changes on every build, forcing cache refresh
-const CACHE_VERSION = 'v20260505101526'; // Will be replaced by build script
+const CACHE_VERSION = 'v20260505121148'; // Will be replaced by build script
 const CACHE_NAME = `financetrack-${CACHE_VERSION}`;
 
 // Files that trigger a cache refresh when changed
@@ -21,7 +21,7 @@ self.addEventListener('install', (event) => {
       return cache.addAll(STATIC_ASSETS);
     })
   );
-  // Immediately activate, don't wait for all tabs to close
+  // Immediately activate without waiting for old tabs to close
   self.skipWaiting();
 });
 
@@ -36,18 +36,15 @@ self.addEventListener('activate', (event) => {
       );
     })
   );
-  // Claim all clients immediately
+  // Claim all clients immediately so new SW takes over at once
   self.clients.claim();
-  // Notify existing tabs that an update is available
-  self.registration.addEventListener('updatefound', () => {
-    console.log('[SW] New version available');
-  });
 });
 
 // Message handler for manual refresh requests
 self.addEventListener('message', (event) => {
   if (event.data === 'skipWaiting') {
     self.skipWaiting();
+    self.clients.claim();
   }
   if (event.data === 'getVersion') {
     event.ports[0].postMessage(CACHE_VERSION);

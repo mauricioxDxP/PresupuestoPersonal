@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { transaccionesService, categoriasService, motivosService, archivosService } from '../services';
 import { getVisibleCategoriaMotivoIds } from '../services/permisos';
-import { useAuth } from '../context/AuthContext';
+import { useAuth, Rol } from '../context/AuthContext';
 import type {
   Transaccion,
   TransaccionHistorial,
@@ -55,11 +55,15 @@ export const TransaccionesPage: React.FC = () => {
   const [loadingHistorial, setLoadingHistorial] = useState(false);
 
   // Permisos de visibilidad
-  const { selectedCasaId } = useAuth();
+  const { user, selectedCasaId } = useAuth();
   const [visibleIds, setVisibleIds] = useState<{ categoriaIds: string[]; motivoIds: string[] }>({
     categoriaIds: [],
     motivoIds: [],
   });
+
+  // Determinar rol per-casa (MAESTRO_CASA o USUARIO vienen de UsuarioCasa, no del usuario global)
+  const selectedCasaData = user?.casas?.find(c => c.id === selectedCasaId);
+  const isMaestroCasa = selectedCasaData?.rol === Rol.MAESTRO_CASA;
 
   // Cleanup previews when modal closes
   const limpiarFormulario = () => {
@@ -388,8 +392,9 @@ export const TransaccionesPage: React.FC = () => {
     }
   };
 
-  const categoriasFiltradas = categorias.filter(c => visibleIds.categoriaIds.includes(c.id));
-  const motivosFiltrados = motivos.filter(m => visibleIds.motivoIds.includes(m.id));
+  // MAESTRO_CASA ve todas las categorias y motivos, USUARIO ve solo los que tiene permiso
+  const categoriasFiltradas = isMaestroCasa ? categorias : categorias.filter(c => visibleIds.categoriaIds.includes(c.id));
+  const motivosFiltrados = isMaestroCasa ? motivos : motivos.filter(m => visibleIds.motivoIds.includes(m.id));
   const motivosPorCategoria = motivosFiltrados.filter((m) => m.categoriaId === form.categoriaId);
 
   /**

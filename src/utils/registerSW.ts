@@ -13,18 +13,20 @@ export function registerSW() {
           console.log('✅ Service Worker registrado:', registration.scope);
           swRegistration = registration;
 
-          // Detectar actualizaciones
+          // Detectar actualizaciones y aplicar automáticamente en móvil
           registration.addEventListener('updatefound', () => {
             const newWorker = registration.installing;
             if (!newWorker) return;
 
             newWorker.addEventListener('statechange', () => {
               if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                // Nueva versión disponible
-                console.log('🔄 Nueva versión disponible.');
-                if (confirm('Hay una nueva versión disponible. ¿Querés actualizar?')) {
+                // Nueva versión disponible - aplicar automáticamente sin preguntar
+                console.log('🔄 Nueva versión disponible. Actualizando...');
+                newWorker.postMessage('skipWaiting');
+                // Pequeño delay para que el SW se actualice
+                setTimeout(() => {
                   window.location.reload();
-                }
+                }, 500);
               }
             });
           });
