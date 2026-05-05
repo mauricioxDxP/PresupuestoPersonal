@@ -250,8 +250,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       isAuthenticated: false,
       isLoading: false,
     });
-    // Force full reload to reset all module-level state (cache, services, etc.)
-    window.location.href = '/login';
+    // Bypass service worker cache on mobile by adding timestamp
+    window.location.replace('/login?t=' + Date.now());
   };
 
   const hasPermission = (
