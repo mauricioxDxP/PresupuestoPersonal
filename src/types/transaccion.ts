@@ -50,7 +50,7 @@ export interface Transaccion {
 export interface CreateTransaccionDto {
   motivoId: string;
   categoriaId: string;
-  monto: number;
+  monto?: number | '';
   fecha: string;
   descripcion?: string;
   facturable?: boolean;
@@ -59,7 +59,7 @@ export interface CreateTransaccionDto {
 export interface UpdateTransaccionDto {
   motivoId?: string;
   categoriaId?: string;
-  monto?: number;
+  monto?: number | '';
   fecha?: string;
   descripcion?: string;
   facturable?: boolean;

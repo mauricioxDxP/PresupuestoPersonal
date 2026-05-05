@@ -184,12 +184,7 @@ export function UsersPage() {
     setPermisosCategoria(prev => ({
       ...prev,
       [catId]: {
-        ...(prev[catId] || {}),
-        puedeCrear: false,
-        puedeEditar: false,
-        puedeEliminar: false,
-        puedeVer: false,
-        puedeVerTransaccionesOtros: false,
+        ...(prev[catId] || { puedeCrear: false, puedeEditar: false, puedeEliminar: false, puedeVer: false, puedeVerTransaccionesOtros: false }),
         [tipo]: !prev[catId]?.[tipo],
       },
     }));
@@ -199,12 +194,7 @@ export function UsersPage() {
     setPermisosMotivo(prev => ({
       ...prev,
       [motivoId]: {
-        ...(prev[motivoId] || {}),
-        puedeCrear: false,
-        puedeEditar: false,
-        puedeEliminar: false,
-        puedeVer: false,
-        puedeVerTransaccionesOtros: false,
+        ...(prev[motivoId] || { puedeCrear: false, puedeEditar: false, puedeEliminar: false, puedeVer: false, puedeVerTransaccionesOtros: false }),
         [tipo]: !prev[motivoId]?.[tipo],
       },
     }));

@@ -49,23 +49,24 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
           { to: '/dashboard', label: 'Dashboard', icon: '📊' },
         ] 
       : []),
-    // MAESTRO_CASA y USUARIO: ven gestión de casa (basado en rol por casa)
+    // MAESTRO_CASA: ve menú completo con Gestión dropdown (incluye Categorías y Motivos)
+    // USUARIO: solo ve Transacciones y Reportes
     ...(isAuthenticated && (isMaestroCasa || isUsuarioCasa)
       ? [
           { to: '/transacciones', label: 'Transacciones', icon: '💰' },
           { to: '/reportes', label: 'Reportes', icon: '📈' },
-          { 
-            label: 'Gestión', 
-            icon: '⚙️',
-            children: [
-              { to: '/categorias', label: 'Categorías', icon: '📁' },
-              { to: '/motivos', label: 'Motivos', icon: '🏷️' },
-              ...(isMaestroCasa ? [
+          ...(isMaestroCasa ? [
+            { 
+              label: 'Gestión', 
+              icon: '⚙️',
+              children: [
+                { to: '/categorias', label: 'Categorías', icon: '📁' },
+                { to: '/motivos', label: 'Motivos', icon: '🏷️' },
                 { to: '/usuarios', label: 'Usuarios', icon: '👥' },
                 { to: '/perfis', label: 'Perfiles', icon: '🎭' },
-              ] : []),
-            ]
-          },
+              ]
+            },
+          ] : []),
         ]
       : []),
     { to: '/configuracion', label: 'Configuración', icon: '⚙️' },

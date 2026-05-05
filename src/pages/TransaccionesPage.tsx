@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { transaccionesService, categoriasService, motivosService, archivosService } from '../services';
+import { getVisibleCategoriaMotivoIds } from '../services/permisos';
+import { useAuth } from '../context/AuthContext';
 import type {
   Transaccion,
   TransaccionHistorial,
@@ -37,7 +39,7 @@ export const TransaccionesPage: React.FC = () => {
   const [form, setForm] = useState<CreateTransaccionDto>({
     motivoId: '',
     categoriaId: '',
-    monto: 0,
+    monto: '',
     fecha: new Date().toISOString().split('T')[0],
     descripcion: '',
     facturable: false,
@@ -52,12 +54,19 @@ export const TransaccionesPage: React.FC = () => {
   const [historial, setHistorial] = useState<TransaccionHistorial[]>([]);
   const [loadingHistorial, setLoadingHistorial] = useState(false);
 
+  // Permisos de visibilidad
+  const { selectedCasaId } = useAuth();
+  const [visibleIds, setVisibleIds] = useState<{ categoriaIds: string[]; motivoIds: string[] }>({
+    categoriaIds: [],
+    motivoIds: [],
+  });
+
   // Cleanup previews when modal closes
   const limpiarFormulario = () => {
     setForm({
       motivoId: '',
       categoriaId: '',
-      monto: 0,
+      monto: '',
       fecha: new Date().toISOString().split('T')[0],
       descripcion: '',
       facturable: false,
@@ -141,6 +150,20 @@ export const TransaccionesPage: React.FC = () => {
   useEffect(() => {
     fetchMotivos();
   }, [fetchMotivos]);
+
+  // Fetch IDs visibles cuando cambia la casa
+  useEffect(() => {
+    const fetchVisibleIds = async () => {
+      if (!selectedCasaId) return;
+      try {
+        const ids = await getVisibleCategoriaMotivoIds(selectedCasaId);
+        setVisibleIds({ categoriaIds: ids.categoriaIds, motivoIds: ids.motivoIds });
+      } catch (err) {
+        console.error('Error al obtener permisos visibles:', err);
+      }
+    };
+    fetchVisibleIds();
+  }, [selectedCasaId]);
 
   const aplicarFiltros = () => {
     setFiltros(filtrosTemp);
@@ -365,7 +388,9 @@ export const TransaccionesPage: React.FC = () => {
     }
   };
 
-  const motivosPorCategoria = motivos.filter((m) => m.categoriaId === form.categoriaId);
+  const categoriasFiltradas = categorias.filter(c => visibleIds.categoriaIds.includes(c.id));
+  const motivosFiltrados = motivos.filter(m => visibleIds.motivoIds.includes(m.id));
+  const motivosPorCategoria = motivosFiltrados.filter((m) => m.categoriaId === form.categoriaId);
 
   /**
    * Formatea una fecha ISO (2026-04-02T00:00:00.000Z) a DD/MM/YYYY
@@ -464,7 +489,7 @@ export const TransaccionesPage: React.FC = () => {
               setForm({
                 motivoId: '',
                 categoriaId: '',
-                monto: 0,
+                monto: '',
                 fecha: new Date().toISOString().split('T')[0],
                 descripcion: '',
                 facturable: false,
@@ -520,7 +545,7 @@ export const TransaccionesPage: React.FC = () => {
               onChange={(e) => setFiltrosTemp({ ...filtrosTemp, categoriaId: e.target.value })}
               options={[
                 { value: '', label: 'Todas' },
-                ...categorias.map((c) => ({ value: c.id, label: c.nombre })),
+                ...categoriasFiltradas.map((c) => ({ value: c.id, label: c.nombre })),
               ]}
             />
             <Select
@@ -529,7 +554,7 @@ export const TransaccionesPage: React.FC = () => {
               onChange={(e) => setFiltrosTemp({ ...filtrosTemp, motivoId: e.target.value })}
               options={[
                 { value: '', label: 'Todos' },
-                ...motivos.map((m) => ({ value: m.id, label: m.nombre })),
+                ...motivosFiltrados.map((m) => ({ value: m.id, label: m.nombre })),
               ]}
             />
             <div className="flex items-end gap-2 col-span-1 sm:col-span-2 md:col-span-4">
@@ -695,7 +720,7 @@ export const TransaccionesPage: React.FC = () => {
             onChange={(e) => setForm({ ...form, categoriaId: e.target.value, motivoId: '' })}
             options={[
               { value: '', label: 'Seleccionar categoría' },
-              ...categorias.map((c) => ({ value: c.id, label: c.nombre })),
+              ...categoriasFiltradas.map((c) => ({ value: c.id, label: c.nombre })),
             ]}
           />
           {form.categoriaId && (
@@ -711,11 +736,19 @@ export const TransaccionesPage: React.FC = () => {
           )}
           <Input
             label="Monto"
-            type="number"
-            step="0.01"
+            type="text"
+            inputMode="decimal"
             value={form.monto}
-            onChange={(e) => setForm({ ...form, monto: parseFloat(e.target.value) || 0 })}
-            required
+            onChange={(e) => {
+              const val = e.target.value;
+              if (val === '') {
+                setForm({ ...form, monto: '' });
+              } else {
+                const parsed = parseFloat(val);
+                setForm({ ...form, monto: isNaN(parsed) ? '' : parsed });
+              }
+            }}
+            placeholder="0.00"
           />
           <Input
             label="Fecha"
