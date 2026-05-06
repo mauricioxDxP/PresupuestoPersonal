@@ -336,7 +336,7 @@ export const TransaccionesPage: React.FC = () => {
         await transaccionesService.create({
           motivoId: motivo.id,
           categoriaId: categoria.id,
-          monto: row.monto,
+          monto: String(row.monto),
           fecha: row.fecha,
           descripcion: row.descripcion || '',
           facturable: row.facturable || false,
@@ -368,7 +368,7 @@ export const TransaccionesPage: React.FC = () => {
     setForm({
       motivoId: trans.motivoId,
       categoriaId: trans.categoriaId,
-      monto: Number(trans.monto),
+      monto: String(trans.monto),
       fecha: trans.fecha.split('T')[0],
       descripcion: trans.descripcion || '',
       facturable: trans.facturable,
@@ -745,13 +745,16 @@ export const TransaccionesPage: React.FC = () => {
             inputMode="decimal"
             value={form.monto}
             onChange={(e) => {
-              const val = e.target.value;
-              if (val === '') {
-                setForm({ ...form, monto: '' });
-              } else {
-                const parsed = parseFloat(val);
-                setForm({ ...form, monto: isNaN(parsed) ? '' : parsed });
+              // Allow decimal separators (.,) but only one
+              let val = e.target.value;
+              // Replace comma with dot for consistency
+              val = val.replace(',', '.');
+              // Only allow numbers and one dot
+              const parts = val.split('.');
+              if (parts.length > 2) {
+                val = parts[0] + '.' + parts.slice(1).join('');
               }
+              setForm({ ...form, monto: val });
             }}
             placeholder="0.00"
           />
