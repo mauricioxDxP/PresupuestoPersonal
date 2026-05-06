@@ -192,9 +192,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = async (email: string, password: string) => {
     const response = await api.post('/auth/login', { email, password });
-    const { access_token, user } = response.data;
+    const { access_token, refresh_token, user } = response.data;
     
     localStorage.setItem(AUTH_TOKEN_KEY, access_token);
+    localStorage.setItem('auth_refresh_token', refresh_token);
     api.defaults.headers.common['Authorization'] = `Bearer ${access_token}`;
     
     setState(s => ({
@@ -208,9 +209,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const register = async (email: string, password: string, nombre: string) => {
     const response = await api.post('/auth/register', { email, password, nombre });
-    const { access_token, user } = response.data;
+    const { access_token, refresh_token, user } = response.data;
     
     localStorage.setItem(AUTH_TOKEN_KEY, access_token);
+    localStorage.setItem('auth_refresh_token', refresh_token);
     api.defaults.headers.common['Authorization'] = `Bearer ${access_token}`;
     
     setState(s => ({
@@ -224,9 +226,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const googleAuth = async (googleToken: string, casaId?: string) => {
     const response = await api.post('/auth/google', { googleToken, casaId });
-    const { access_token, user } = response.data;
+    const { access_token, refresh_token, user } = response.data;
     
     localStorage.setItem(AUTH_TOKEN_KEY, access_token);
+    localStorage.setItem('auth_refresh_token', refresh_token);
     api.defaults.headers.common['Authorization'] = `Bearer ${access_token}`;
     
     setState(s => ({
@@ -240,6 +243,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = () => {
     localStorage.removeItem(AUTH_TOKEN_KEY);
+    localStorage.removeItem('auth_refresh_token');
     localStorage.removeItem(SELECTED_CASA_KEY);
     delete api.defaults.headers.common['Authorization'];
     clearCache();
