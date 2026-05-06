@@ -23,8 +23,20 @@ api.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
     
-    // Si es 401 y no es una petición de refresh/login, intentamos refresh
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    // Skip if already retried
+    if (originalRequest._retry) {
+      return Promise.reject(error);
+    }
+    
+    const url = originalRequest.url || '';
+    // Only check for auth endpoints - these should never trigger refresh
+    const isAuthEndpoint = url.includes('/auth/login') || 
+                           url.includes('/auth/register') || 
+                           url.includes('/auth/google') || 
+                           url.includes('/auth/refresh');
+    
+    // Si es 401 y NO es una petición de auth, intentamos refresh
+    if (error.response?.status === 401 && !isAuthEndpoint && !url.startsWith('/auth')) {
       originalRequest._retry = true;
       
       try {
@@ -58,6 +70,7 @@ api.interceptors.response.use(
       }
     }
     
+    // Para errores 401 en auth endpoints, simplemente devolver el error original
     return Promise.reject(error);
   }
 );

@@ -195,15 +195,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const { access_token, refresh_token, user } = response.data;
     
     localStorage.setItem(AUTH_TOKEN_KEY, access_token);
-    localStorage.setItem('auth_refresh_token', refresh_token);
+    localStorage.setItem('auth_refresh_token', refresh_token || '');
     api.defaults.headers.common['Authorization'] = `Bearer ${access_token}`;
     
+    // Set user state first, then refresh permisos
     setState(s => ({
       ...s,
       user,
       isAuthenticated: true,
+      isLoading: false,
     }));
-
+    
+    // Now load permisos after state is updated
     await refreshPermisos();
   };
 
@@ -212,30 +215,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const { access_token, refresh_token, user } = response.data;
     
     localStorage.setItem(AUTH_TOKEN_KEY, access_token);
-    localStorage.setItem('auth_refresh_token', refresh_token);
+    localStorage.setItem('auth_refresh_token', refresh_token || '');
     api.defaults.headers.common['Authorization'] = `Bearer ${access_token}`;
     
     setState(s => ({
       ...s,
       user,
       isAuthenticated: true,
+      isLoading: false,
     }));
 
     await refreshPermisos();
   };
 
-  const googleAuth = async (googleToken: string, casaId?: string) => {
+const googleAuth = async (googleToken: string, casaId?: string) => {
     const response = await api.post('/auth/google', { googleToken, casaId });
     const { access_token, refresh_token, user } = response.data;
     
     localStorage.setItem(AUTH_TOKEN_KEY, access_token);
-    localStorage.setItem('auth_refresh_token', refresh_token);
+    localStorage.setItem('auth_refresh_token', refresh_token || '');
     api.defaults.headers.common['Authorization'] = `Bearer ${access_token}`;
     
     setState(s => ({
       ...s,
       user,
       isAuthenticated: true,
+      isLoading: false,
     }));
 
     await refreshPermisos();
