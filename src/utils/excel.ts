@@ -1,4 +1,5 @@
 // Dynamic import wrapper for xlsx - only loaded when Excel functions are called
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 let xlsxModule: any = null;
 
@@ -382,3 +383,14 @@ export const generateMonthlyReport = async (
   XLSX.utils.book_append_sheet(workbook, worksheet, tituloMes);
   XLSX.writeFile(workbook, `reporte_${tituloMes.replace(/\s/g, '_')}.xlsx`);
 };
+
+export interface TransaccionParaReporte {
+  id: string;
+  monto: number | string;
+  fecha: string;
+  descripcion: string | null;
+  motivoId: string;
+  categoriaId: string;
+  motivo: { id: string; nombre: string; orden: number; mostrarSinTransacciones: boolean };
+  categoria: { id: string; nombre: string; tipo: string };
+}

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { transaccionesService } from '../services';
 import { generateMonthlyReport, type ReporteMensualData } from '../utils/excel';
 import { Button, Select, Card, Loading, ErrorMessage } from '../components/UI';
@@ -14,6 +14,8 @@ export const ReportesPage: React.FC = () => {
   const [mes, setMes] = useState(new Date().getMonth() + 1);
   const [includeEmpty, setIncludeEmpty] = useState(true);
   const [reportePreview, setReportePreview] = useState<ReporteMensualData | null>(null);
+  const [tipoReporte, setTipoReporte] = useState<'mensual' | 'semanal'>('mensual');
+  const [semanaSeleccionada, setSemanaSeleccionada] = useState<string>('');
 
   /**
    * Formatea una fecha ISO usando UTC para evitar el desfase de zona horaria.
@@ -47,6 +49,50 @@ export const ReportesPage: React.FC = () => {
     { value: 12, label: 'Diciembre' },
   ];
 
+  // Generar semanas disponibles para el mes seleccionado
+  const semanasDelMes = useMemo(() => {
+    const semanas: { value: string; label: string; fechaInicio: Date; fechaFin: Date }[] = [];
+    const primerDia = new Date(anio, mes - 1, 1);
+    const ultimoDia = new Date(anio, mes, 0);
+
+    // Encontrar el primer lunes
+    let inicio = new Date(primerDia);
+    while (inicio.getDay() !== 1) {
+      inicio.setDate(inicio.getDate() - 1);
+    }
+
+    // Si el lunes começa antes del primer día del mes, avançar una semana
+    if (inicio < primerDia) {
+      inicio.setDate(inicio.getDate() + 7);
+    }
+
+    const months = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+
+    while (inicio <= ultimoDia) {
+      const fin = new Date(inicio);
+      fin.setDate(inicio.getDate() + 6);
+
+      const label = `${inicio.getDate()}-${months[inicio.getMonth()]} - ${fin.getDate()}-${months[fin.getMonth()]}`;
+      semanas.push({
+        value: inicio.toISOString().split('T')[0],
+        label,
+        fechaInicio: new Date(inicio),
+        fechaFin: fin,
+      });
+
+      inicio.setDate(inicio.getDate() + 7);
+    }
+
+    return semanas;
+  }, [anio, mes]);
+
+  // Inicializar semana seleccionada si cambió el mes
+  useEffect(() => {
+    if (semanasDelMes.length > 0 && !semanasDelMes.find(s => s.value === semanaSeleccionada)) {
+      setSemanaSeleccionada(semanasDelMes[0].value);
+    }
+  }, [anio, mes, semanasDelMes, semanaSeleccionada]);
+
   const cargarPreview = async () => {
     try {
       setLoading(true);
@@ -78,6 +124,18 @@ export const ReportesPage: React.FC = () => {
     }
   };
 
+  const generarExcelReporteSemanal = async () => {
+    try {
+      setGenerando(true);
+      await transaccionesService.downloadReporteExcel('semanal', anio, mes, includeEmpty);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Error al generar el reporte';
+      setError(message);
+    } finally {
+      setGenerando(false);
+    }
+  };
+
   // Cargar preview al cambiar mes/año o casa
   useEffect(() => {
     cargarPreview();
@@ -101,7 +159,16 @@ export const ReportesPage: React.FC = () => {
 
       {/* Selector de período */}
       <Card title="Período del reporte" className="mb-4 sm:mb-6">
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+          <Select
+            label="Tipo"
+            value={tipoReporte}
+            onChange={(e) => setTipoReporte(e.target.value as 'mensual' | 'semanal')}
+            options={[
+              { value: 'mensual', label: 'Mensual' },
+              { value: 'semanal', label: 'Semanal' },
+            ]}
+          />
           <Select
             label="Mes"
             value={String(mes)}
@@ -114,26 +181,42 @@ export const ReportesPage: React.FC = () => {
             onChange={(e) => setAnio(parseInt(e.target.value))}
             options={anios.map((a) => ({ value: String(a), label: String(a) }))}
           />
-          <div className="flex items-end">
-            <label className="flex items-center gap-2 cursor-pointer select-none" style={{ color: 'var(--color-text-secondary)' }}>
-              <input
-                type="checkbox"
-                checked={includeEmpty}
-                onChange={(e) => setIncludeEmpty(e.target.checked)}
-                className="w-4 h-4"
-              />
-              <span className="text-sm">
-                Incluir motivos sin transacciones
-              </span>
-            </label>
-          </div>
+          {tipoReporte === 'semanal' ? (
+            <Select
+              label="Semana"
+              value={semanaSeleccionada}
+              onChange={(e) => setSemanaSeleccionada(e.target.value)}
+              options={semanasDelMes.map((s) => ({ value: s.value, label: s.label }))}
+            />
+          ) : (
+            <div className="flex items-end">
+              <label className="flex items-center gap-2 cursor-pointer select-none" style={{ color: 'var(--color-text-secondary)' }}>
+                <input
+                  type="checkbox"
+                  checked={includeEmpty}
+                  onChange={(e) => setIncludeEmpty(e.target.checked)}
+                  className="w-4 h-4"
+                />
+                <span className="text-sm">
+                  Incluir motivos sin transacciones
+                </span>
+              </label>
+            </div>
+          )}
         </div>
 
         <div className="flex flex-col sm:flex-row gap-2 mt-4">
-          <Button onClick={generarExcel} disabled={generando} className="w-full sm:w-auto">
-            {generando ? '⏳ Generando...' : '📥 Descargar Excel'}
-          </Button>
-          <Button variant="secondary" onClick={cargarPreview} disabled={loading} className="w-full sm:w-auto">
+          {tipoReporte === 'mensual' && (
+            <Button onClick={generarExcel} disabled={generando} className="w-full sm:w-auto">
+              {generando ? '⏳ Generando...' : '📥 Reporte Mensual'}
+            </Button>
+          )}
+          {tipoReporte === 'semanal' && (
+            <Button variant="secondary" onClick={generarExcelReporteSemanal} disabled={generando} className="w-full sm:w-auto">
+              {generando ? '⏳ Generando...' : '📥 Reporte Semanal'}
+            </Button>
+          )}
+          <Button variant="ghost" onClick={cargarPreview} disabled={loading} className="w-full sm:w-auto">
             🔄 Actualizar
           </Button>
         </div>

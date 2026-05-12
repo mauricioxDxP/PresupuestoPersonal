@@ -140,4 +140,39 @@ export const transaccionesService = {
     const response = await api.get(`/transacciones/${transaccionId}/historial`);
     return response.data;
   },
+
+  async downloadReporteExcel(formato: 'mensual' | 'semanal', anio: number, mes: number, includeEmpty?: boolean): Promise<void> {
+    const params = new URLSearchParams({
+      anio: String(anio),
+      mes: String(mes),
+    });
+    if (includeEmpty !== undefined) {
+      params.append('includeEmpty', String(includeEmpty));
+    }
+    const response = await api.get(`/transacciones/reporte-mensual/excel/${formato}`, {
+      params: params,
+      responseType: 'blob',
+    });
+    // Extract filename from Content-Disposition header
+    const contentDisposition = response.headers['content-disposition'];
+    let filename = `reporte_${formato}.xlsx`;
+    if (contentDisposition) {
+      const match = contentDisposition.match(/filename="?([^"]+)"?/);
+      if (match) {
+        filename = match[1];
+      }
+    }
+    // Create blob and trigger download
+    const blob = new Blob([response.data], {
+      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+  },
 };

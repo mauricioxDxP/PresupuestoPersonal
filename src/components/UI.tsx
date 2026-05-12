@@ -1,7 +1,7 @@
 import React from 'react';
 
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: 'primary' | 'secondary' | 'danger';
+  variant?: 'primary' | 'secondary' | 'danger' | 'ghost';
   children: React.ReactNode;
 }
 
@@ -26,6 +26,10 @@ export const Button: React.FC<ButtonProps> = ({
       backgroundColor: 'var(--color-danger)',
       color: 'var(--color-primary-text)',
     }),
+    ...(variant === 'ghost' && {
+      backgroundColor: 'transparent',
+      color: 'var(--color-text-secondary)',
+    }),
   };
 
   const handleMouseEnter = (e: React.MouseEvent<HTMLButtonElement>) => {
@@ -35,6 +39,8 @@ export const Button: React.FC<ButtonProps> = ({
       (e.currentTarget as HTMLButtonElement).style.backgroundColor = 'var(--color-secondary-hover)';
     } else if (variant === 'danger') {
       (e.currentTarget as HTMLButtonElement).style.backgroundColor = 'var(--color-danger-hover)';
+    } else if (variant === 'ghost') {
+      (e.currentTarget as HTMLButtonElement).style.backgroundColor = 'var(--color-border)';
     }
   };
 
@@ -45,6 +51,8 @@ export const Button: React.FC<ButtonProps> = ({
       (e.currentTarget as HTMLButtonElement).style.backgroundColor = 'var(--color-secondary)';
     } else if (variant === 'danger') {
       (e.currentTarget as HTMLButtonElement).style.backgroundColor = 'var(--color-danger)';
+    } else if (variant === 'ghost') {
+      (e.currentTarget as HTMLButtonElement).style.backgroundColor = 'transparent';
     }
   };
 
