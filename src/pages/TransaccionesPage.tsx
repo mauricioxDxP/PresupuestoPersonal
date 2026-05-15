@@ -10,7 +10,6 @@ import type {
   Archivo,
   CreateTransaccionDto,
   FiltrosTransaccion,
-  Reportes,
   Moneda,
   Billetera,
 } from '../types';
@@ -21,7 +20,6 @@ export const TransaccionesPage: React.FC = () => {
   const [transacciones, setTransacciones] = useState<Transaccion[]>([]);
   const [categorias, setCategorias] = useState<Categoria[]>([]);
   const [motivos, setMotivos] = useState<Motivo[]>([]);
-  const [reportes, setReportes] = useState<Reportes | null>(null);
   const [loadingTransacciones, setLoadingTransacciones] = useState(true);
   const [loadingCategorias, setLoadingCategorias] = useState(true);
   const [loadingMotivos, setLoadingMotivos] = useState(true);
@@ -137,21 +135,10 @@ export const TransaccionesPage: React.FC = () => {
     }
   }, []);
 
-  const fetchReportes = useCallback(async () => {
-    try {
-      const data = await transaccionesService.getReportes(filtros);
-      setReportes(data);
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Error al cargar reportes';
-      setError(message);
-    }
-  }, [filtros]);
-
   // Fetch independientes - cada uno se carga cuando puede
   useEffect(() => {
     fetchTransacciones();
-    fetchReportes();
-  }, [fetchTransacciones, fetchReportes]);
+  }, [fetchTransacciones]);
 
   useEffect(() => {
     fetchCategorias();
@@ -255,7 +242,6 @@ export const TransaccionesPage: React.FC = () => {
       setModalOpen(false);
       limpiarFormulario();
       fetchTransacciones();
-      fetchReportes();
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Error al guardar';
       setError(message);
@@ -267,7 +253,6 @@ export const TransaccionesPage: React.FC = () => {
     try {
       await transaccionesService.delete(id);
       fetchTransacciones();
-      fetchReportes();
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Error al eliminar';
       setError(message);
@@ -362,7 +347,6 @@ export const TransaccionesPage: React.FC = () => {
       }
       
       fetchTransacciones();
-      fetchReportes();
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Error al importar';
       setError(message);
