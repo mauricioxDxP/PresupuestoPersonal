@@ -3,6 +3,7 @@ import { transaccionesService } from '../services';
 import { generateMonthlyReport, type ReporteMensualData } from '../utils/excel';
 import { Button, Select, Card, Loading, ErrorMessage } from '../components/UI';
 import { useAuth } from '../context/AuthContext';
+import type { Moneda, Billetera } from '../types';
 
 export const ReportesPage: React.FC = () => {
   const { selectedCasaId } = useAuth();
@@ -16,6 +17,8 @@ export const ReportesPage: React.FC = () => {
   const [reportePreview, setReportePreview] = useState<ReporteMensualData | null>(null);
   const [tipoReporte, setTipoReporte] = useState<'mensual' | 'semanal'>('mensual');
   const [semanaSeleccionada, setSemanaSeleccionada] = useState<string>('');
+  const [filtroMoneda, setFiltroMoneda] = useState<Moneda>('BOB');
+  const [filtroBilletera, setFiltroBilletera] = useState<Billetera | ''>('');
 
   /**
    * Formatea una fecha ISO usando UTC para evitar el desfase de zona horaria.
@@ -97,7 +100,10 @@ export const ReportesPage: React.FC = () => {
     try {
       setLoading(true);
       setError(null);
-      const data = await transaccionesService.getReporteMensual(anio, mes);
+      const filters: Record<string, string> = {};
+      if (filtroMoneda) filters.moneda = filtroMoneda;
+      if (filtroBilletera) filters.billetera = filtroBilletera;
+      const data = await transaccionesService.getReporteMensualNoCache(anio, mes, filters);
       setReportePreview(data);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Error al cargar el reporte';
@@ -114,7 +120,10 @@ export const ReportesPage: React.FC = () => {
 
     try {
       setGenerando(true);
-      const data = reportePreview || await transaccionesService.getReporteMensual(anio, mes);
+      const filters: Record<string, string> = {};
+      if (filtroMoneda) filters.moneda = filtroMoneda;
+      if (filtroBilletera) filters.billetera = filtroBilletera;
+      const data = reportePreview || await transaccionesService.getReporteMensual(anio, mes, filters);
       await generateMonthlyReport(data, includeEmpty);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Error al generar el reporte';
@@ -127,7 +136,10 @@ export const ReportesPage: React.FC = () => {
   const generarExcelReporteSemanal = async () => {
     try {
       setGenerando(true);
-      await transaccionesService.downloadReporteExcel('semanal', anio, mes, includeEmpty);
+      const filters: Record<string, string> = {};
+      if (filtroMoneda) filters.moneda = filtroMoneda;
+      if (filtroBilletera) filters.billetera = filtroBilletera;
+      await transaccionesService.downloadReporteExcel('semanal', anio, mes, includeEmpty, filters);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Error al generar el reporte';
       setError(message);
@@ -136,11 +148,11 @@ export const ReportesPage: React.FC = () => {
     }
   };
 
-  // Cargar preview al cambiar mes/año o casa
+  // Cargar preview al cambiar mes/año/casa o filtros
   useEffect(() => {
     cargarPreview();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [anio, mes, selectedCasaId]);
+  }, [anio, mes, selectedCasaId, filtroMoneda, filtroBilletera]);
 
   // Calcular totales del preview
   const totalTransacciones = reportePreview?.transacciones.length || 0;
@@ -157,9 +169,29 @@ export const ReportesPage: React.FC = () => {
         📊 Reportes
       </h1>
 
-      {/* Selector de período */}
-      <Card title="Período del reporte" className="mb-4 sm:mb-6">
-        <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+      {/* Selector de período y filtros */}
+      <Card title="Filtros del reporte" className="mb-4 sm:mb-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+          <Select
+            label="Moneda"
+            value={filtroMoneda}
+            onChange={(e) => setFiltroMoneda(e.target.value as Moneda)}
+            options={[
+              { value: 'BOB', label: 'BOB - Bolivianos' },
+              { value: 'USD', label: 'USD - Dólares' },
+            ]}
+          />
+          <Select
+            label="Billetera"
+            value={filtroBilletera}
+            onChange={(e) => setFiltroBilletera(e.target.value as Billetera | '')}
+            options={[
+              { value: '', label: 'Todos' },
+              { value: 'efectivo', label: '💵 Efectivo' },
+              { value: 'banco', label: '🏦 Banco' },
+              { value: 'app', label: '📱 App' },
+            ]}
+          />
           <Select
             label="Tipo"
             value={tipoReporte}
@@ -198,7 +230,7 @@ export const ReportesPage: React.FC = () => {
                   className="w-4 h-4"
                 />
                 <span className="text-sm">
-                  Incluir motivos sin transacciones
+                  Incluir motivos vacíos
                 </span>
               </label>
             </div>

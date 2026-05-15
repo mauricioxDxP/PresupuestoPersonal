@@ -11,6 +11,8 @@ import type {
   CreateTransaccionDto,
   FiltrosTransaccion,
   Reportes,
+  Moneda,
+  Billetera,
 } from '../types';
 import { Button, Input, Select, Card, FormModal, Loading, ErrorMessage } from '../components/UI';
 import { exportToExcel, importTransaccionesFromExcel, downloadTemplate } from '../utils/excel';
@@ -43,6 +45,8 @@ export const TransaccionesPage: React.FC = () => {
     fecha: new Date().toISOString().split('T')[0],
     descripcion: '',
     facturable: false,
+    moneda: 'BOB',
+    billetera: 'efectivo',
   });
   const [archivos, setArchivos] = useState<File[]>([]);
   const [archivosExistentes, setArchivosExistentes] = useState<Archivo[]>([]);
@@ -74,6 +78,8 @@ export const TransaccionesPage: React.FC = () => {
       fecha: new Date().toISOString().split('T')[0],
       descripcion: '',
       facturable: false,
+      moneda: 'BOB',
+      billetera: 'efectivo',
     });
     setArchivos([]);
     setArchivosExistentes([]);
@@ -276,6 +282,8 @@ export const TransaccionesPage: React.FC = () => {
       categoria: t.categoria?.nombre,
       motivo: t.motivo?.nombre,
       facturable: t.facturable,
+      moneda: t.moneda,
+      billetera: t.billetera,
     }));
     await exportToExcel(data, 'transacciones', 'Transacciones');
     setExcelDropdownOpen(false);
@@ -372,6 +380,8 @@ export const TransaccionesPage: React.FC = () => {
       fecha: trans.fecha.split('T')[0],
       descripcion: trans.descripcion || '',
       facturable: trans.facturable,
+      moneda: trans.moneda,
+      billetera: trans.billetera,
     });
     setArchivos([]);
     setArchivosExistentes(trans.archivos || []);
@@ -415,31 +425,6 @@ export const TransaccionesPage: React.FC = () => {
 
   return (
     <div className="p-3 sm:p-4 md:p-6">
-      {/* Reportes */}
-      {reportes && (
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4 sm:mb-6">
-          <Card>
-            <p className="text-sm" style={{ color: 'var(--color-text-muted)' }}>Ingresos</p>
-            <p className="text-xl sm:text-2xl font-bold" style={{ color: 'var(--color-text-ingreso)' }}>
-              Bs{reportes.totalIngresos.toFixed(2)}
-            </p>
-          </Card>
-          <Card>
-            <p className="text-sm" style={{ color: 'var(--color-text-muted)' }}>Gastos</p>
-            <p className="text-xl sm:text-2xl font-bold" style={{ color: 'var(--color-text-gasto)' }}>Bs{reportes.totalGastos.toFixed(2)}</p>
-          </Card>
-          <Card>
-            <p className="text-sm" style={{ color: 'var(--color-text-muted)' }}>Balance</p>
-            <p
-              className={`text-xl sm:text-2xl font-bold`}
-              style={{ color: reportes.balance >= 0 ? 'var(--color-text-ingreso)' : 'var(--color-text-gasto)' }}
-            >
-              Bs{reportes.balance.toFixed(2)}
-            </p>
-          </Card>
-        </div>
-      )}
-
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-4 sm:mb-6">
         <h1 className="text-xl sm:text-2xl font-bold">Transacciones</h1>
         
@@ -498,6 +483,8 @@ export const TransaccionesPage: React.FC = () => {
                 fecha: new Date().toISOString().split('T')[0],
                 descripcion: '',
                 facturable: false,
+                moneda: 'BOB',
+                billetera: 'efectivo',
               });
               setArchivos([]);
               setArchivosExistentes([]);
@@ -562,6 +549,27 @@ export const TransaccionesPage: React.FC = () => {
                 ...motivosFiltrados.map((m) => ({ value: m.id, label: m.nombre })),
               ]}
             />
+            <Select
+              label="Moneda"
+              value={filtrosTemp.moneda || ''}
+              onChange={(e) => setFiltrosTemp({ ...filtrosTemp, moneda: e.target.value as Moneda || undefined })}
+              options={[
+                { value: '', label: 'Todas' },
+                { value: 'BOB', label: 'BOB - Bolivianos' },
+                { value: 'USD', label: 'USD - Dólares' },
+              ]}
+            />
+            <Select
+              label="Billetera"
+              value={filtrosTemp.billetera || ''}
+              onChange={(e) => setFiltrosTemp({ ...filtrosTemp, billetera: e.target.value as Billetera || undefined })}
+              options={[
+                { value: '', label: 'Todas' },
+                { value: 'efectivo', label: '💵 Efectivo' },
+                { value: 'banco', label: '🏦 Banco' },
+                { value: 'app', label: '📱 App' },
+              ]}
+            />
             <div className="flex items-end gap-2 col-span-1 sm:col-span-2 md:col-span-4">
               <Button onClick={aplicarFiltros} className="w-full sm:w-auto">
                 🔍 Aplicar filtros
@@ -586,10 +594,20 @@ export const TransaccionesPage: React.FC = () => {
                     className={`font-bold text-base ${trans.categoria?.tipo === 'ingreso' ? '' : ''}`}
                     style={{ color: trans.categoria?.tipo === 'ingreso' ? 'var(--color-text-ingreso)' : 'var(--color-text-gasto)' }}
                   >
-                    {trans.categoria?.tipo === 'ingreso' ? '+' : '-'}Bs
+                    {trans.categoria?.tipo === 'ingreso' ? '+' : '-'}
+                    {trans.moneda === 'USD' ? '$' : 'Bs'}
                     {Number(trans.monto).toFixed(2)}
                   </span>
                   <span className="font-medium text-sm truncate">{trans.motivo?.nombre}</span>
+                  {trans.moneda === 'USD' && (
+                    <span className="text-xs px-1 rounded bg-blue-100 text-blue-700">USD</span>
+                  )}
+                  {trans.billetera === 'banco' && (
+                    <span className="text-xs">🏦</span>
+                  )}
+                  {trans.billetera === 'app' && (
+                    <span className="text-xs">📱</span>
+                  )}
                 </div>
                 <p className="text-sm" style={{ color: 'var(--color-text-muted)' }}>
                   {trans.categoria?.nombre} • {formatFecha(trans.fecha)}
@@ -781,6 +799,27 @@ export const TransaccionesPage: React.FC = () => {
               Facturable
             </label>
           </div>
+
+          <Select
+            label="Moneda"
+            value={form.moneda || 'BOB'}
+            onChange={(e) => setForm({ ...form, moneda: e.target.value as Moneda })}
+            options={[
+              { value: 'BOB', label: 'BOB - Bolivianos' },
+              { value: 'USD', label: 'USD - Dólares' },
+            ]}
+          />
+
+          <Select
+            label="Billetera"
+            value={form.billetera || 'efectivo'}
+            onChange={(e) => setForm({ ...form, billetera: e.target.value as Billetera })}
+            options={[
+              { value: 'efectivo', label: '💵 Efectivo' },
+              { value: 'banco', label: '🏦 Banco' },
+              { value: 'app', label: '📱 App' },
+            ]}
+          />
 
           {/* Archivos existentes (solo en edición) */}
           {editando && archivosExistentes.length > 0 && (

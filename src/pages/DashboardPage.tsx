@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { transaccionesService } from '../services';
-import type { Reportes, Transaccion } from '../types';
-import { Card, Loading, ErrorMessage } from '../components/UI';
+import type { Reportes, Transaccion, Moneda, Billetera } from '../types';
+import { Card, Loading, ErrorMessage, Select } from '../components/UI';
 
 export const DashboardPage: React.FC = () => {
   const [reportes, setReportes] = useState<Reportes | null>(null);
@@ -10,12 +10,17 @@ export const DashboardPage: React.FC = () => {
   const [loadingTransacciones, setLoadingTransacciones] = useState(true);
   const [errorReportes, setErrorReportes] = useState<string | null>(null);
   const [errorTransacciones, setErrorTransacciones] = useState<string | null>(null);
+  const [filtroMoneda, setFiltroMoneda] = useState<Moneda | ''>('BOB');
+  const [filtroBilletera, setFiltroBilletera] = useState<Billetera | ''>('');
 
   const fetchReportes = useCallback(async () => {
     try {
       setLoadingReportes(true);
       setErrorReportes(null);
-      const data = await transaccionesService.getReportes();
+      const filters: Record<string, string> = {};
+      if (filtroMoneda) filters.moneda = filtroMoneda;
+      if (filtroBilletera) filters.billetera = filtroBilletera;
+      const data = await transaccionesService.getReportes(filters);
       setReportes(data);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Error al cargar reportes';
@@ -23,13 +28,16 @@ export const DashboardPage: React.FC = () => {
     } finally {
       setLoadingReportes(false);
     }
-  }, []);
+  }, [filtroMoneda, filtroBilletera]);
 
   const fetchTransaccionesRecientes = useCallback(async () => {
     try {
       setLoadingTransacciones(true);
       setErrorTransacciones(null);
-      const data = await transaccionesService.getAll({}, { page: 1, limit: 5 });
+      const filters: Record<string, string> = {};
+      if (filtroMoneda) filters.moneda = filtroMoneda;
+      if (filtroBilletera) filters.billetera = filtroBilletera;
+      const data = await transaccionesService.getAll(filters, { page: 1, limit: 5 });
       setTransaccionesRecientes(data.data);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Error al cargar transacciones';
@@ -37,7 +45,7 @@ export const DashboardPage: React.FC = () => {
     } finally {
       setLoadingTransacciones(false);
     }
-  }, []);
+  }, [filtroMoneda, filtroBilletera]);
 
   useEffect(() => {
     fetchReportes();
@@ -53,6 +61,30 @@ export const DashboardPage: React.FC = () => {
   return (
     <div className="p-3 sm:p-4 md:p-6">
       <h1 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6">Dashboard</h1>
+
+      {/* Filtros */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4 sm:mb-6 p-3 rounded-lg" style={{ backgroundColor: 'var(--color-bg-secondary)' }}>
+        <Select
+          label="Moneda"
+          value={filtroMoneda}
+          onChange={(e) => setFiltroMoneda(e.target.value as Moneda | '')}
+          options={[
+            { value: 'BOB', label: 'BOB - Bolivianos' },
+            { value: 'USD', label: 'USD - Dólares' },
+          ]}
+        />
+        <Select
+          label="Billetera"
+          value={filtroBilletera}
+          onChange={(e) => setFiltroBilletera(e.target.value as Billetera | '')}
+          options={[
+            { value: '', label: 'Todos' },
+            { value: 'efectivo', label: '💵 Efectivo' },
+            { value: 'banco', label: '🏦 Banco' },
+            { value: 'app', label: '📱 App' },
+          ]}
+        />
+      </div>
 
       {hasError && <ErrorMessage message={errorReportes || errorTransacciones || ''} />}
 

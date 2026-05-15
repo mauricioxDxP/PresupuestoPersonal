@@ -108,13 +108,13 @@ export const transaccionesService = {
     return response.data;
   },
 
-  async getReporteMensual(anio: number, mes: number) {
-    const cacheKey = makeCacheKey('transacciones-reporte-mensual', { anio, mes });
+  async getReporteMensual(anio: number, mes: number, filtros?: FiltrosTransaccion) {
+    const cacheKey = makeCacheKey('transacciones-reporte-mensual', { anio, mes, ...filtros });
 
     // Check cache first
     const cached = getCache(cacheKey);
     if (cached !== undefined) {
-      this.getReporteMensualNoCache(anio, mes).then(fresh => {
+      this.getReporteMensualNoCache(anio, mes, filtros).then(fresh => {
         setCache(cacheKey, fresh);
       }).catch(console.error);
       return cached;
@@ -122,16 +122,16 @@ export const transaccionesService = {
 
     // Fetch and cache
     const response = await api.get('/transacciones/reporte-mensual', {
-      params: { anio, mes },
+      params: { anio, mes, ...filtros },
     });
     const data = response.data;
     setCache(cacheKey, data);
     return data;
   },
 
-  async getReporteMensualNoCache(anio: number, mes: number) {
+  async getReporteMensualNoCache(anio: number, mes: number, filtros?: FiltrosTransaccion) {
     const response = await api.get('/transacciones/reporte-mensual', {
-      params: { anio, mes },
+      params: { anio, mes, ...filtros },
     });
     return response.data;
   },
@@ -141,13 +141,19 @@ export const transaccionesService = {
     return response.data;
   },
 
-  async downloadReporteExcel(formato: 'mensual' | 'semanal', anio: number, mes: number, includeEmpty?: boolean): Promise<void> {
+  async downloadReporteExcel(formato: 'mensual' | 'semanal', anio: number, mes: number, includeEmpty?: boolean, filtros?: FiltrosTransaccion): Promise<void> {
     const params = new URLSearchParams({
       anio: String(anio),
       mes: String(mes),
     });
     if (includeEmpty !== undefined) {
       params.append('includeEmpty', String(includeEmpty));
+    }
+    if (filtros?.moneda) {
+      params.append('moneda', filtros.moneda);
+    }
+    if (filtros?.billetera) {
+      params.append('billetera', filtros.billetera);
     }
     const response = await api.get(`/transacciones/reporte-mensual/excel/${formato}`, {
       params: params,

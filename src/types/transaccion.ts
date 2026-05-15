@@ -1,6 +1,9 @@
 import type { Categoria } from './categoria';
 import type { Motivo } from './motivo';
 
+export type Moneda = 'BOB' | 'USD';
+export type Billetera = 'efectivo' | 'banco' | 'app';
+
 export interface Archivo {
   id: string;
   tipo: string;
@@ -40,6 +43,8 @@ export interface Transaccion {
   eliminado: boolean;
   createdAt: string;
   updatedAt: string;
+  moneda: Moneda;
+  billetera: Billetera;
   motivo?: Motivo;
   categoria?: Categoria;
   archivos?: Archivo[];
@@ -54,6 +59,8 @@ export interface CreateTransaccionDto {
   fecha: string;
   descripcion?: string;
   facturable?: boolean;
+  moneda?: Moneda;
+  billetera?: Billetera;
 }
 
 export interface UpdateTransaccionDto {
@@ -63,6 +70,8 @@ export interface UpdateTransaccionDto {
   fecha?: string;
   descripcion?: string;
   facturable?: boolean;
+  moneda?: Moneda;
+  billetera?: Billetera;
 }
 
 export interface FiltrosTransaccion {
@@ -70,6 +79,8 @@ export interface FiltrosTransaccion {
   fechaFin?: string;
   categoriaId?: string;
   motivoId?: string;
+  moneda?: Moneda;
+  billetera?: Billetera;
 }
 
 export interface PaginatedResult<T> {
