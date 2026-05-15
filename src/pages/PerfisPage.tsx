@@ -6,7 +6,7 @@ import { Perfil } from '../types/perfil';
 import { PerfilPermisosEditor } from '../components/PerfilPermisosEditor';
 
 export function PerfisPage() {
-  const { user } = useAuth();
+  const { user, selectedCasaId } = useAuth();
   const [perfis, setPerfis] = useState<Perfil[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -16,7 +16,7 @@ export function PerfisPage() {
   const [editPerfil, setEditPerfil] = useState({ nombre: '', descripcion: '' });
   const [error, setError] = useState('');
 
-  const isMaestro = user?.rol === Rol.MAESTRO_CASA;
+  const isMaestro = user?.casas?.find(c => c.id === selectedCasaId)?.rol === Rol.MAESTRO_CASA;
 
   useEffect(() => {
     if (isMaestro && user?.casaIds?.[0]) {

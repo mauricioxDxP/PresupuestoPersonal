@@ -44,7 +44,7 @@ interface Motivo {
 }
 
 export function UsersPage() {
-  const { user } = useAuth();
+  const { user, selectedCasaId } = useAuth();
   const [users, setUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -68,7 +68,7 @@ export function UsersPage() {
   const [selectedPerfilId, setSelectedPerfilId] = useState<string | null>(null);
   const [userPerfil, setUserPerfil] = useState<{ perfil: Perfil; casa: { id: string; nombre: string } } | null>(null);
 
-  const isMaestro = user?.rol === Rol.MAESTRO_CASA;
+  const isMaestro = user?.casas?.find(c => c.id === selectedCasaId)?.rol === Rol.MAESTRO_CASA;
 
   useEffect(() => {
     if (isMaestro && user?.casaIds?.length) {

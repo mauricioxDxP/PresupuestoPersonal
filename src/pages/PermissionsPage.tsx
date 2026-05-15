@@ -21,7 +21,7 @@ interface User {
 }
 
 export function PermissionsPage() {
-  const { user } = useAuth();
+  const { user, selectedCasaId } = useAuth();
   const [users, setUsers] = useState<User[]>([]);
   const [categorias, setCategorias] = useState<Categoria[]>([]);
   const [motivos, setMotivos] = useState<Motivo[]>([]);
@@ -32,7 +32,7 @@ export function PermissionsPage() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
-  const isMaestro = user?.rol === Rol.MAESTRO_CASA;
+  const isMaestro = user?.casas?.find(c => c.id === selectedCasaId)?.rol === Rol.MAESTRO_CASA;
 
   useEffect(() => {
     if (isMaestro && user?.casaIds?.length) {
