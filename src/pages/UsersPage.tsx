@@ -71,16 +71,16 @@ export function UsersPage() {
   const isMaestro = user?.casas?.find(c => c.id === selectedCasaId)?.rol === Rol.MAESTRO_CASA;
 
   useEffect(() => {
-    if (isMaestro && user?.casaIds?.length) {
+    if (isMaestro && selectedCasaId) {
       loadUsers();
     }
-  }, [user]);
+  }, [user, selectedCasaId, isMaestro]);
 
   const loadUsers = async () => {
-    if (!user?.casaIds?.[0]) return;
+    if (!selectedCasaId) return;
     
     try {
-      const response = await api.get(`/users?casaId=${user.casaIds[0]}`);
+      const response = await api.get(`/users?casaId=${selectedCasaId}`);
       setUsers(response.data);
     } catch (err) {
       console.error('Error loading users:', err);
