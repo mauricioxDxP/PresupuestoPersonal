@@ -18,6 +18,7 @@ const ReportesPage = lazy(() => import('./pages/ReportesPage').then(m => ({ defa
 const UsersPage = lazy(() => import('./pages/UsersPage').then(m => ({ default: m.UsersPage })));
 const CasasPage = lazy(() => import('./pages/CasasPage').then(m => ({ default: m.CasasPage })));
 const PerfisPage = lazy(() => import('./pages/PerfisPage').then(m => ({ default: m.PerfisPage })));
+const NumeroWhatsAppPage = lazy(() => import('./pages/NumeroWhatsAppPage').then(m => ({ default: m.NumeroWhatsAppPage })));
 
 // Protected Route wrapper
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -70,6 +71,7 @@ function AppContent() {
                   <Route path="/usuarios" element={<UsersPage />} />
                   <Route path="/casas" element={<CasasPage />} />
                   <Route path="/perfis" element={<PerfisPage />} />
+                  <Route path="/numero" element={<NumeroWhatsAppPage />} />
                 </Routes>
               </Suspense>
             </Layout>

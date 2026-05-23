@@ -64,6 +64,7 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
                 { to: '/motivos', label: 'Motivos', icon: '🏷️' },
                 { to: '/usuarios', label: 'Usuarios', icon: '👥' },
                 { to: '/perfis', label: 'Perfiles', icon: '🎭' },
+                { to: '/numero', label: 'Número WhatsApp', icon: '📱' },
               ]
             },
           ] : []),

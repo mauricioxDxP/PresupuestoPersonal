@@ -18,6 +18,9 @@ interface User {
   id: string;
   email: string;
   nombre: string;
+  numero?: string | null;
+  rol: Rol;
+  casas?: { id: string; nombre: string; rol: Rol }[];
 }
 
 export function PermissionsPage() {
@@ -91,6 +94,78 @@ export function PermissionsPage() {
       setError('');
     } catch (err: any) {
       setError(err.response?.data?.message || 'Error al asignar permisos');
+      setSuccess('');
+    }
+  };
+
+  const handleAsignarNumeroWhatsApp = async () => {
+    if (!selectedUser) {
+      setError('Selecciona un usuario');
+      return;
+    }
+
+    const numeroInput = document.getElementById('whatsapp-numero') as HTMLInputElement;
+    const numero = numeroInput?.value?.trim();
+
+    if (!numero) {
+      setError('Ingresa un número de WhatsApp');
+      return;
+    }
+
+    // Basic validation for phone number
+    if (!numero.startsWith('+')) {
+      setError('El número debe comenzar con + (ej: +59170000000)');
+      return;
+    }
+
+    try {
+      await api.patch(`/users/${selectedUser}`, { numero });
+      setSuccess(`Número ${numero} asignado correctamente`);
+      setError('');
+      loadData(); // Reload to show updated numero
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Error al asignar número');
+      setSuccess('');
+    }
+  };
+
+  const handleLimpiarNumeroWhatsApp = async () => {
+    if (!selectedUser) {
+      setError('Selecciona un usuario');
+      return;
+    }
+
+    try {
+      await api.patch(`/users/${selectedUser}`, { numero: null });
+      setSuccess('Número de WhatsApp eliminado');
+      setError('');
+      loadData();
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Error al eliminar número');
+      setSuccess('');
+    }
+  };
+
+  const handleAsignarCasaDefault = async () => {
+    if (!selectedUser) {
+      setError('Selecciona un usuario');
+      return;
+    }
+
+    const casaSelect = document.getElementById('whatsapp-casa-default') as HTMLSelectElement;
+    const casaId = casaSelect?.value;
+
+    if (!casaId) {
+      setError('Selecciona una casa');
+      return;
+    }
+
+    try {
+      await api.post(`/users/${selectedUser}/config-whatsapp`, { casaIdPorDefecto: casaId });
+      setSuccess('Casa por defecto configurada correctamente');
+      setError('');
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Error al configurar casa');
       setSuccess('');
     }
   };
@@ -354,6 +429,119 @@ export function PermissionsPage() {
         >
           Asignar Permisos de Motivo
         </button>
+      </div>
+
+      {/* WhatsApp Configuration Section - Only for MAESTRO_CASA */}
+      <div 
+        className="p-6 rounded-xl space-y-4"
+        style={{ backgroundColor: 'var(--color-surface)' }}
+      >
+        <h2 className="text-lg font-semibold" style={{ color: 'var(--color-text)' }}>
+          📱 Configuración WhatsApp
+        </h2>
+        <p className="text-sm" style={{ color: 'var(--color-text-muted)' }}>
+          Asigna un número de teléfono para que el usuario pueda usar WhatsApp.
+        </p>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium mb-1" style={{ color: 'var(--color-text)' }}>
+              Usuario
+            </label>
+            <select
+              value={selectedUser}
+              onChange={(e) => setSelectedUser(e.target.value)}
+              className="w-full px-4 py-2 rounded-lg border"
+              style={{ 
+                backgroundColor: 'var(--color-bg)',
+                borderColor: 'var(--color-border)',
+                color: 'var(--color-text)'
+              }}
+            >
+              <option value="">Selecciona un usuario</option>
+              {users.map((u) => (
+                <option key={u.id} value={u.id}>
+                  {u.nombre} ({u.numero || 'sin número'})
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-1" style={{ color: 'var(--color-text)' }}>
+              Número de WhatsApp
+            </label>
+            <input
+              type="text"
+              id="whatsapp-numero"
+              placeholder="+59170000000"
+              className="w-full px-4 py-2 rounded-lg border"
+              style={{ 
+                backgroundColor: 'var(--color-bg)',
+                borderColor: 'var(--color-border)',
+                color: 'var(--color-text)'
+              }}
+            />
+          </div>
+        </div>
+
+        <div className="flex gap-4">
+          <button
+            onClick={handleAsignarNumeroWhatsApp}
+            disabled={!selectedUser}
+            className="px-4 py-2 rounded-lg font-medium disabled:opacity-50"
+            style={{ backgroundColor: 'var(--color-primary)', color: '#fff' }}
+          >
+            Asignar Número WhatsApp
+          </button>
+          
+          <button
+            onClick={handleLimpiarNumeroWhatsApp}
+            disabled={!selectedUser}
+            className="px-4 py-2 rounded-lg font-medium disabled:opacity-50"
+            style={{ 
+              backgroundColor: 'transparent', 
+              color: 'var(--color-error, #dc2626)',
+              border: '1px solid var(--color-error, #dc2626)'
+            }}
+          >
+            Quitar Número
+          </button>
+        </div>
+
+        <div className="mt-4 p-4 rounded-lg" style={{ backgroundColor: 'var(--color-bg)' }}>
+          <h3 className="text-sm font-medium mb-2" style={{ color: 'var(--color-text)' }}>
+            Configuración de Casa por Defecto
+          </h3>
+          <p className="text-xs mb-2" style={{ color: 'var(--color-text-muted)' }}>
+            Selecciona qué casa usará el usuario en WhatsApp por defecto.
+          </p>
+          <select
+            id="whatsapp-casa-default"
+            className="w-full px-4 py-2 rounded-lg border"
+            style={{ 
+              backgroundColor: 'var(--color-bg)',
+              borderColor: 'var(--color-border)',
+              color: 'var(--color-text)'
+            }}
+          >
+            <option value="">Selecciona casa</option>
+            {user?.casas?.filter(c => c.rol === Rol.MAESTRO_CASA || c.rol === Rol.ADMIN).map((c) => (
+              <option key={c.id} value={c.id}>{c.nombre}</option>
+            )) || user?.casaIds?.map((cId, i) => (
+              <option key={cId} value={cId}>Casa {i + 1}</option>
+            ))}
+          </select>
+          
+          <button
+            onClick={handleAsignarCasaDefault}
+            disabled={!selectedUser || !(document.getElementById('whatsapp-casa-default') as HTMLSelectElement)?.value}
+            className="mt-2 px-4 py-2 rounded-lg font-medium disabled:opacity-50"
+            style={{ backgroundColor: 'var(--color-success, #16a34a)', color: '#fff' }}
+          >
+            Establecer Casa por Defecto
+          </button>
+        </div>
       </div>
     </div>
   );
